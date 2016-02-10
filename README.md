@@ -1,0 +1,2 @@
+# BeeSchema
+Binary Schema Library
