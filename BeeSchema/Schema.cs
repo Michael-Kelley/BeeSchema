@@ -41,7 +41,7 @@ namespace BeeSchema {
 			return r;
 		}
 
-		public ListDictionary Parse(string filename) {
+		public OrderedDictionary Parse(string filename) {
 			var s = File.OpenRead(filename);
 			var b = new BinaryReader(s);
 			var r = Parse(b, root.Children);
@@ -50,7 +50,7 @@ namespace BeeSchema {
 			return r;
 		}
 
-		public ListDictionary Parse(byte[] data) {
+		public OrderedDictionary Parse(byte[] data) {
 			var s = new MemoryStream(data);
 			var b = new BinaryReader(s);
 			var r = Parse(b, root.Children);
@@ -59,8 +59,8 @@ namespace BeeSchema {
 			return r;
 		}
 
-		ListDictionary Parse(BinaryReader reader, List<Node> nodes) {
-			var r = new ListDictionary();
+		OrderedDictionary Parse(BinaryReader reader, List<Node> nodes) {
+			var r = new OrderedDictionary();
 
 			foreach (var n in nodes)
 				Parse(reader, n, r);
@@ -68,7 +68,7 @@ namespace BeeSchema {
 			return r;
 		}
 
-		void Parse(BinaryReader reader, Node node, ListDictionary scope) {
+		void Parse(BinaryReader reader, Node node, OrderedDictionary scope) {
 			var r = new Result();
 			r.Type = node.Type;
 			r.Name = node.Name;
@@ -116,7 +116,7 @@ namespace BeeSchema {
 						var type = tnode.Children[0].Type;
 						var val = Convert.ToInt64(ParsePrimitive(reader, type, out r.Size));
 
-						var list = new ListDictionary();
+						var list = new OrderedDictionary();
 
 						foreach (var n in tnode.Children) {
 							var result = new Result();
@@ -142,12 +142,14 @@ namespace BeeSchema {
 
 						var expr = BuildExpression(reader, lnode.Children, scope);
 
-						var length = (int)dt.Compute(expr, "");
+						var length = Convert.ToInt32(dt.Compute(expr, ""));
 
-						if (tnode.Type == NodeType.Char)
+						if (tnode.Type == NodeType.Char) {
 							r.Value = new string(reader.ReadChars(length));
+							r.Size = length;
+						}
 						else {
-							var list = new ListDictionary();
+							var list = new OrderedDictionary();
 
 							for (int i = 0; i < length; i++) {
 								var nt = new Node();
@@ -226,7 +228,7 @@ namespace BeeSchema {
 				return node.Type.ToString().ToLower();
 		}
 
-		string BuildExpression(BinaryReader reader, List<Node> nodes, ListDictionary scope) {
+		string BuildExpression(BinaryReader reader, List<Node> nodes, OrderedDictionary scope) {
 			var sb = new StringBuilder();
 
 			foreach (var n in nodes) {
@@ -802,8 +804,17 @@ namespace BeeSchema {
 			if (token.Type != TokenType.OpenBrace)
 				throw new Exception($"({token.Line}:{token.Column}) Expected [{{].");
 
+			Node child = null;
+
 			while ((token = lexer.NextToken()).Type != TokenType.CloseBrace) {
-				var child = new Node();
+				if ((token.Type == TokenType.LineComment || token.Type == TokenType.BlockComment)
+					&& child != null) {
+					child.Comment = token.Value;
+					child = null;
+					continue;
+				}
+
+				child = new Node();
 				child.Type = type;
 
 				if (token.Type != TokenType.Word)
