@@ -43,16 +43,18 @@ namespace BeeSchema {
 
 		public OrderedDictionary Parse(string filename) {
 			var s = File.OpenRead(filename);
-			var b = new BinaryReader(s);
-			var r = Parse(b, root.Children);
-			b.Close();
 
-			return r;
+			return Parse(s);
 		}
 
 		public OrderedDictionary Parse(byte[] data) {
 			var s = new MemoryStream(data);
-			var b = new BinaryReader(s);
+
+			return Parse(s);
+		}
+
+		public OrderedDictionary Parse(Stream stream) {
+			var b = new BinaryReader(stream, Encoding.ASCII);
 			var r = Parse(b, root.Children);
 			b.Close();
 
@@ -84,7 +86,7 @@ namespace BeeSchema {
 				return;
 			}
 
-			switch(r.Type) {
+			switch (r.Type) {
 				case NodeType.Struct: {
 						var tnode = types[r.TypeName];
 						var val = Parse(reader, tnode.Children);
@@ -132,7 +134,7 @@ namespace BeeSchema {
 
 						r.Value = list;
 						scope.Add(r.Name, r);
-					}	
+					}
 					break;
 				case NodeType.Array: {
 						var tnode = node.Children[0];
@@ -145,7 +147,8 @@ namespace BeeSchema {
 						var length = Convert.ToInt32(dt.Compute(expr, ""));
 
 						if (tnode.Type == NodeType.Char) {
-							r.Value = new string(reader.ReadChars(length));
+							var a = reader.ReadChars(length);
+							r.Value = new string(a);
 							r.Size = length;
 						}
 						else {
@@ -205,7 +208,7 @@ namespace BeeSchema {
 								foreach (Result v in body.Values) {
 									v.Name += $"[{i++}]";
 									scope.Add(v.Name, v);
-                                }
+								}
 							}
 							else
 								break;
@@ -500,70 +503,82 @@ namespace BeeSchema {
 						child.Type = NodeType.ForLoop;*/
 
 					//if (token.Value != "else") {
-						var cond = new Node();
-						cond.Name = "condition";
-						token = lexer.NextToken();
+					var cond = new Node();
+					cond.Name = "condition";
+					token = lexer.NextToken();
 
-						if (token.Type != TokenType.OpenParen)
-							throw new Exception($"({token.Line}:{token.Column}) Expected [(].");
+					if (token.Type != TokenType.OpenParen)
+						throw new Exception($"({token.Line}:{token.Column}) Expected [(].");
 
-						while ((token = lexer.NextToken()).Type != TokenType.CloseParen) {
-							var condChild = new Node();
-							condChild.Name = $"({token.Line}:{token.Column})";
+					while ((token = lexer.NextToken()).Type != TokenType.CloseParen) {
+						var condChild = new Node();
+						condChild.Name = $"({token.Line}:{token.Column})";
 
-							switch (token.Type) {
-								case TokenType.Number:
-									condChild.Type = NodeType.Long;
-									condChild.Value = long.Parse(token.Value);
-									break;
-								case TokenType.Equal:
-									condChild.Type = NodeType.EqualComp;
-									break;
-								case TokenType.NotEqual:
-									condChild.Type = NodeType.NEqualComp;
-									break;
-								case TokenType.Less:
-									condChild.Type = NodeType.LessComp;
-									break;
-								case TokenType.Greater:
-									condChild.Type = NodeType.GreaterComp;
-									break;
-								case TokenType.LessOrEqual:
-									condChild.Type = NodeType.LoEComp;
-									break;
-								case TokenType.GreaterOrEqual:
-									condChild.Type = NodeType.GoEComp;
-									break;
-								case TokenType.Not:
-									condChild.Type = NodeType.NotComp;
-									break;
-								case TokenType.Word:
-									if (token.Value.StartsWith("@")) {
-										if (token.Value == "@eof")
-											condChild.Type = NodeType.EofMacro;
-										else if (token.Value == "@size")
-											condChild.Type = NodeType.SizeMacro;
-										else if (token.Value == "@pos")
-											condChild.Type = NodeType.PosMacro;
-										else
-											throw new Exception($"({token.Line}:{token.Column}) Unknown macro.");
+						switch (token.Type) {
+							case TokenType.Number:
+								condChild.Type = NodeType.Long;
+								condChild.Value = long.Parse(token.Value);
+								break;
+							case TokenType.Equal:
+								condChild.Type = NodeType.EqualComp;
+								break;
+							case TokenType.NotEqual:
+								condChild.Type = NodeType.NEqualComp;
+								break;
+							case TokenType.Less:
+								condChild.Type = NodeType.LessComp;
+								break;
+							case TokenType.Greater:
+								condChild.Type = NodeType.GreaterComp;
+								break;
+							case TokenType.LessOrEqual:
+								condChild.Type = NodeType.LoEComp;
+								break;
+							case TokenType.GreaterOrEqual:
+								condChild.Type = NodeType.GoEComp;
+								break;
+							case TokenType.Not:
+								condChild.Type = NodeType.NotComp;
+								break;
+							case TokenType.Plus:
+								condChild.Type = NodeType.AddOper;
+								break;
+							case TokenType.Minus:
+								condChild.Type = NodeType.SubOper;
+								break;
+							case TokenType.Asterisk:
+								condChild.Type = NodeType.MulOper;
+								break;
+							case TokenType.Divide:
+								condChild.Type = NodeType.DivOper;
+								break;
+							case TokenType.Word:
+								if (token.Value.StartsWith("@")) {
+									if (token.Value == "@eof")
+										condChild.Type = NodeType.EofMacro;
+									else if (token.Value == "@size")
+										condChild.Type = NodeType.SizeMacro;
+									else if (token.Value == "@pos")
+										condChild.Type = NodeType.PosMacro;
+									else
+										throw new Exception($"({token.Line}:{token.Column}) Unknown macro.");
 
-										break;
-									}
-									condChild.Type = NodeType.String;
-									condChild.Value = token.Value;
 									break;
-								default:
-									throw new Exception($"({token.Line}:{token.Column}) Unexpected token.");
-							}
-
-							cond.Children.Add(condChild);
+								}
+								condChild.Type = NodeType.String;
+								condChild.Value = token.Value;
+								break;
+							default:
+								throw new Exception($"({token.Line}:{token.Column}) Unexpected token.");
 						}
 
-						if (cond.Children.Count == 0)
-							throw new Exception($"({token.Line}:{token.Column}) Control statements must specify a condition.");
+						cond.Children.Add(condChild);
+					}
 
-						child.Children.Add(cond);
+					if (cond.Children.Count == 0)
+						throw new Exception($"({token.Line}:{token.Column}) Control statements must specify a condition.");
+
+					child.Children.Add(cond);
 					//}
 
 					var body = new Node();
@@ -620,7 +635,8 @@ namespace BeeSchema {
 					type = NodeType.Pointer;
 					token = lexer.NextToken();
 				}
-				else*/ if (token.Type == TokenType.OpenBracket) {
+				else*/
+				if (token.Type == TokenType.OpenBracket) {
 					arrayType = new Node();
 					arrayType.Type = type;
 					arrayType.Name = "type";
@@ -691,7 +707,8 @@ namespace BeeSchema {
 
 					/*if (child.Type == NodeType.Pointer)
 						child.Value = subType;
-					else*/ if (child.Type == NodeType.Array) {
+					else*/
+					if (child.Type == NodeType.Array) {
 						child.Children.Add(arrayType);
 						child.Children.Add(arrayLength);
 					}
