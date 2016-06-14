@@ -30,8 +30,8 @@ namespace Example {
 			foreach (var v in r) {
 				Console.WriteLine($"{new string('\t', tab)}{v.TypeName} {v.Name} : {v.Value}");
 
-				if (v.Value is ResultCollection)
-					WriteResults((ResultCollection)v.Value, tab + 1);
+				if (v.HasChildren)
+					WriteResults(v.Values, tab + 1);
 			}
 		}
 	}

@@ -14,13 +14,15 @@ namespace BeeSchema {
 		public object Value;
 		public string Comment;
 
-		public int Count => ((ResultCollection)Value).Count;
+		public bool HasChildren => Value is ResultCollection;
+		public ResultCollection Values => (ResultCollection)Value;
+		public int Count => Values.Count;
 
-		public Result this[int index] => ((ResultCollection)Value)[index];
-		public Result this[string name] => ((ResultCollection)Value)[name];
+		public Result this[int index] => Values[index];
+		public Result this[string name] => Values[name];
 
-		public IEnumerator<Result> GetEnumerator() => ((ResultCollection)Value).GetEnumerator();
-		IEnumerator IEnumerable.GetEnumerator() => ((ResultCollection)Value).GetEnumerator();
+		public IEnumerator<Result> GetEnumerator() => Values.GetEnumerator();
+		IEnumerator IEnumerable.GetEnumerator() => Values.GetEnumerator();
 
 		public static implicit operator bool(Result r) => (bool)r.Value;
 		public static implicit operator byte(Result r) => (byte)r.Value;
