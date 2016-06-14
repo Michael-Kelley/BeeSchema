@@ -49,6 +49,8 @@ namespace BeeSchema {
 		NotComp,
 		GoEComp,
 		LoEComp,
+		OrCond,
+		AndCond,
 
 		EofMacro,
 		SizeMacro,

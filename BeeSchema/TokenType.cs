@@ -10,9 +10,9 @@ namespace BeeSchema {
 		Comma,
 
 		Assignment,
-		Asterisk, Divide,Plus, Minus,
+		Asterisk, Divide, Plus, Minus,
 		Less, Greater, Equal, NotEqual, LessOrEqual, GreaterOrEqual,
-		Not,
+		Not, Or, And,
 
 		LineComment, BlockComment,
 

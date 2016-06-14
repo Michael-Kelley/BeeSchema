@@ -275,7 +275,7 @@ namespace BeeSchema {
 								}
 							}
 							else {
-								var result = (Result)scope[(string)n.Value];
+								var result = scope[(string)n.Value];
 
 								if (result.Type == NodeType.Enum) {
 									var tnode = types[result.TypeName];
@@ -312,6 +312,12 @@ namespace BeeSchema {
 						break;
 					case NodeType.LoEComp:
 						sb.Append("<=");
+						break;
+					case NodeType.OrCond:
+						sb.Append(" OR ");
+						break;
+					case NodeType.AndCond:
+						sb.Append(" AND ");
 						break;
 				}
 			}
@@ -540,6 +546,12 @@ namespace BeeSchema {
 								break;
 							case TokenType.Not:
 								condChild.Type = NodeType.NotComp;
+								break;
+							case TokenType.Or:
+								condChild.Type = NodeType.OrCond;
+								break;
+							case TokenType.And:
+								condChild.Type = NodeType.AndCond;
 								break;
 							case TokenType.Plus:
 								condChild.Type = NodeType.AddOper;

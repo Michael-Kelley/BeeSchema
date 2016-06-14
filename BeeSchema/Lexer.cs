@@ -15,6 +15,7 @@ namespace BeeSchema {
 			':', ';',
 			'*', '/', '+', '-',
 			'<', '>', '=', '!',
+			'|', '&',
 			'#',
 			',',
 			' ', '\t', '\n', '\r'
@@ -111,6 +112,20 @@ namespace BeeSchema {
 					}
 
 					return new Token(TokenType.Greater, line, column - 1, null);
+				case '|':
+					if (reader.Peek() != '|')
+						throw new System.Exception($"Invalid token!  Expected '|'.  Got '{reader.Peek()}'");
+
+					reader.Read();
+					column++;
+					return new Token(TokenType.Or, line, column - 2, null);
+				case '&':
+					if (reader.Peek() != '&')
+						throw new System.Exception($"Invalid token!  Expected '&'.  Got '{reader.Peek()}'");
+
+					reader.Read();
+					column++;
+					return new Token(TokenType.And, line, column - 2, null);
 			}
 
 			var sb = new StringBuilder();
