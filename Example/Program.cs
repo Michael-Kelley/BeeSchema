@@ -31,7 +31,7 @@ namespace Example {
 				Console.WriteLine($"{new string('\t', tab)}{v.TypeName} {v.Name} : {v.Value}");
 
 				if (v.HasChildren)
-					WriteResults(v.Values, tab + 1);
+					WriteResults(v.Children, tab + 1);
 			}
 		}
 	}
