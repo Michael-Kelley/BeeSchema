@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Collections.Specialized;
 using System.Data;
 using System.Globalization;
 using System.IO;
@@ -41,19 +40,19 @@ namespace BeeSchema {
 			return r;
 		}
 
-		public OrderedDictionary Parse(string filename) {
+		public ResultCollection Parse(string filename) {
 			var s = File.OpenRead(filename);
 
 			return Parse(s);
 		}
 
-		public OrderedDictionary Parse(byte[] data) {
+		public ResultCollection Parse(byte[] data) {
 			var s = new MemoryStream(data);
 
 			return Parse(s);
 		}
 
-		public OrderedDictionary Parse(Stream stream) {
+		public ResultCollection Parse(Stream stream) {
 			var b = new BinaryReader(stream, Encoding.ASCII);
 			var r = Parse(b, root.Children);
 			b.Close();
@@ -61,8 +60,8 @@ namespace BeeSchema {
 			return r;
 		}
 
-		OrderedDictionary Parse(BinaryReader reader, List<Node> nodes) {
-			var r = new OrderedDictionary();
+		ResultCollection Parse(BinaryReader reader, List<Node> nodes) {
+			var r = new ResultCollection();
 
 			foreach (var n in nodes)
 				Parse(reader, n, r);
@@ -70,7 +69,7 @@ namespace BeeSchema {
 			return r;
 		}
 
-		void Parse(BinaryReader reader, Node node, OrderedDictionary scope) {
+		void Parse(BinaryReader reader, Node node, ResultCollection scope) {
 			var r = new Result();
 			r.Type = node.Type;
 			r.Name = node.Name;
@@ -82,7 +81,7 @@ namespace BeeSchema {
 			r.TypeName = GetTypeName(node);
 
 			if (r.Value != null) {
-				scope.Add(r.Name, r);
+				scope.Add(r);
 				return;
 			}
 
@@ -92,10 +91,10 @@ namespace BeeSchema {
 						var val = Parse(reader, tnode.Children);
 						r.Value = val;
 
-						foreach (Result v in val.Values)
+						foreach (Result v in val)
 							r.Size += v.Size;
 
-						scope.Add(r.Name, r);
+						scope.Add(r);
 					}
 					break;
 				case NodeType.Enum: {
@@ -110,7 +109,7 @@ namespace BeeSchema {
 							}
 						}
 
-						scope.Add(r.Name, r);
+						scope.Add(r);
 					}
 					break;
 				case NodeType.Bitfield: {
@@ -118,7 +117,7 @@ namespace BeeSchema {
 						var type = tnode.Children[0].Type;
 						var val = Convert.ToInt64(ParsePrimitive(reader, type, out r.Size));
 
-						var list = new OrderedDictionary();
+						var list = new ResultCollection();
 
 						foreach (var n in tnode.Children) {
 							var result = new Result();
@@ -129,11 +128,11 @@ namespace BeeSchema {
 							var mask = (1 << bits) - 1;
 							result.Value = val & mask;
 							val >>= bits;
-							list.Add(result.Name, result);
+							list.Add(result);
 						}
 
 						r.Value = list;
-						scope.Add(r.Name, r);
+						scope.Add(r);
 					}
 					break;
 				case NodeType.Array: {
@@ -152,7 +151,7 @@ namespace BeeSchema {
 							r.Size = length;
 						}
 						else {
-							var list = new OrderedDictionary();
+							var list = new ResultCollection();
 
 							for (int i = 0; i < length; i++) {
 								var nt = new Node();
@@ -162,13 +161,13 @@ namespace BeeSchema {
 								Parse(reader, nt, list);
 							}
 
-							foreach (Result l in list.Values)
+							foreach (Result l in list)
 								r.Size += l.Size;
 
 							r.Value = list;
 						}
 
-						scope.Add(r.Name, r);
+						scope.Add(r);
 					}
 					break;
 				case NodeType.IfCond:
@@ -184,8 +183,8 @@ namespace BeeSchema {
 						if (cond) {
 							var body = Parse(reader, bnode.Children);
 
-							foreach (Result v in body.Values)
-								scope.Add(v.Name, v);
+							foreach (Result v in body)
+								scope.Add(v);
 						}
 					}
 					break;
@@ -205,10 +204,12 @@ namespace BeeSchema {
 							if (cond) {
 								var body = Parse(reader, bnode.Children);
 
-								foreach (Result v in body.Values) {
-									v.Name += $"[{i++}]";
-									scope.Add(v.Name, v);
+								foreach (Result v in body) {
+									v.Name += $"[{i}]";
+									scope.Add(v);
 								}
+
+								i++;
 							}
 							else
 								break;
@@ -231,7 +232,7 @@ namespace BeeSchema {
 				return node.Type.ToString().ToLower();
 		}
 
-		string BuildExpression(BinaryReader reader, List<Node> nodes, OrderedDictionary scope) {
+		string BuildExpression(BinaryReader reader, List<Node> nodes, ResultCollection scope) {
 			var sb = new StringBuilder();
 
 			foreach (var n in nodes) {

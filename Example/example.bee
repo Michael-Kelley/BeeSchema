@@ -1,0 +1,22 @@
+enum SomeEnum : byte {
+	Zero,
+	One,
+	Five		= 5,
+	Eight		= 8,
+	EleventyOne	= 111
+}
+
+struct SomeStruct {
+	bytes	: byte[4];
+}
+
+schema {
+	a_byte			: byte;
+	a_short			: short;
+	an_int			: int;
+	a_long			: long;
+	a_float,
+	another_float	: float;
+	a_struct		: SomeStruct;
+	an_enum			: SomeEnum;
+}
