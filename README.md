@@ -3,13 +3,13 @@
 # BeeSchema
 ## Binary Schema Library for C&#35;
 
-BeeSchema allows you to define the structure of a binary file using a simple schema (*.bee) file, then read the file in a much more human way.  No more BinaryReader or manually reading data from Streams.
+BeeSchema allows you to define the structure of a binary file using a simple schema (&#42;.bee) file, then read the file in a much more human way.  No more BinaryReader or manually reading data from Streams.
 
 *NOTE: BeeSchema is still in development, so things may change and other things might not be too optimised.  Also, BeeSchema was designed as a replacement for the limited structure definition support in [Ostara](https://github.com/Epidal/Ostara).  As such, some features that you require may not be supported.*
 
 
 ## Schema Files
-The structure of a binary file to be parsed by BeeSchema is defined in a simple text file (usually with the extension *.bee) that uses a custom language designed specifically for this purpose.  These schemas can then be loaded by BeeSchema, and later used to parse binary files and turn them into more human-readable data.
+The structure of a binary file to be parsed by BeeSchema is defined in a simple text file (usually with the extension &#42;.bee) that uses a custom language designed specifically for this purpose.  These schemas can then be loaded by BeeSchema, and later used to parse binary files and turn them into more human-readable data.
 The basic structure of any schema file consists of optional custom data types and a **schema** block that represents the entry point of the schema file.  This block is where BeeSchema will begin its parsing of binary files.  For example, a schema file for a simple binary file that consists of a 32-bit integer followed by an 8-bit integer might look like this:
 ```elm
 schema {
