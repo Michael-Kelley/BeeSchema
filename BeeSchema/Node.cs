@@ -1,7 +1,7 @@
 ﻿using System.Collections.Generic;
 
 namespace BeeSchema {
-	class Node {
+	public class Node {
 		public NodeType Type { get; internal set; }
 		public string Name { get; internal set; }
 		public string Comment { get; internal set; }

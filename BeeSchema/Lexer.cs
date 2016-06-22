@@ -4,11 +4,12 @@ using System.Text;
 
 namespace BeeSchema {
 	class Lexer {
-		TextReader reader;
+		readonly TextReader reader;
+
 		int line = 1;
 		int column = 1;
 
-		static char[] delimiters = {
+		static readonly char[] delimiters = {
 			'{', '}',
 			'[', ']',
 			'(', ')',

@@ -5,6 +5,7 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Net;
+using System.Reflection.Emit;
 using System.Text;
 
 namespace BeeSchema {
@@ -12,13 +13,13 @@ namespace BeeSchema {
 		Lexer lexer;
 		string directory;
 
-		Dictionary<string, Node> types;
-		Node root;
+		public Dictionary<string, Node> Types;
+		public Node Root;
 
 		static string[] control = { "if", "unless", /*"else", "elif",*/ "while", "until"/*, "for"*/ };
 
 		Schema() {
-			types = new Dictionary<string, Node>();
+			Types = new Dictionary<string, Node>();
 		}
 
 		public static Schema FromFile(string filename) {
@@ -54,7 +55,7 @@ namespace BeeSchema {
 
 		public ResultCollection Parse(Stream stream) {
 			var b = new BinaryReader(stream, Encoding.ASCII);
-			var r = Parse(b, root.Children);
+			var r = Parse(b, Root.Children);
 			b.Close();
 
 			return r;
@@ -87,7 +88,7 @@ namespace BeeSchema {
 
 			switch (r.Type) {
 				case NodeType.Struct: {
-						var tnode = types[r.TypeName];
+						var tnode = Types[r.TypeName];
 						var val = Parse(reader, tnode.Children);
 						r.Value = val;
 
@@ -98,7 +99,7 @@ namespace BeeSchema {
 					}
 					break;
 				case NodeType.Enum: {
-						var tnode = types[r.TypeName];
+						var tnode = Types[r.TypeName];
 						var type = tnode.Children[0].Type;
 						var val = Convert.ToInt64(ParsePrimitive(reader, type, out r.Size));
 
@@ -113,7 +114,7 @@ namespace BeeSchema {
 					}
 					break;
 				case NodeType.Bitfield: {
-						var tnode = types[(string)node.Value];
+						var tnode = Types[(string)node.Value];
 						var type = tnode.Children[0].Type;
 						var val = Convert.ToInt64(ParsePrimitive(reader, type, out r.Size));
 
@@ -265,7 +266,7 @@ namespace BeeSchema {
 							var val = (string)n.Value;
 
 							if (val.Contains('.')) {
-								var tnode = types[val.Substring(0, val.IndexOf('.'))];
+								var tnode = Types[val.Substring(0, val.IndexOf('.'))];
 
 								foreach (var c in tnode.Children) {
 									if (c.Name == val.Substring(val.IndexOf('.') + 1)) {
@@ -278,7 +279,7 @@ namespace BeeSchema {
 								var result = scope[(string)n.Value];
 
 								if (result.Type == NodeType.Enum) {
-									var tnode = types[result.TypeName];
+									var tnode = Types[result.TypeName];
 
 									foreach (var c in tnode.Children) {
 										if (c.Name == (string)result.Value) {
@@ -299,7 +300,7 @@ namespace BeeSchema {
 						sb.Append("=");
 						break;
 					case NodeType.NEqualComp:
-						sb.Append("!=");
+						sb.Append("<>");
 						break;
 					case NodeType.GreaterComp:
 						sb.Append(">");
@@ -405,32 +406,36 @@ namespace BeeSchema {
 
 				var node = new Node();
 
-				if (token.Value == "include") {
-					node = null;
-					ReadInclude();
-				}
-				else if (token.Value == "struct") {
-					node.Type = NodeType.StructDef;
-					ReadStructBlock(node);
-				}
-				else if (token.Value == "enum") {
-					node.Type = NodeType.EnumDef;
-					ReadEnumBlock(node);
-				}
-				else if (token.Value == "bitfield") {
-					node.Type = NodeType.BitfieldDef;
-					ReadBitfieldBlock(node);
-				}
-				else if (token.Value == "schema") {
-					node.Type = NodeType.SchemaDef;
+				switch (token.Value) {
+					case "include":
+						node = null;
+						ReadInclude();
+						break;
+					case "struct":
+						node.Type = NodeType.StructDef;
+						ReadStructBlock(node);
+						break;
+					case "enum":
+						node.Type = NodeType.EnumDef;
+						ReadEnumBlock(node);
+						break;
+					case "bitfield":
+						node.Type = NodeType.BitfieldDef;
+						ReadBitfieldBlock(node);
+						break;
+					case "schema":
+						node.Type = NodeType.SchemaDef;
 
-					if (readSchemaBlock) {
+						if (!readSchemaBlock)
+							break;
+
 						ReadSchemaBlock(node);
-						root = node;
-					}
+						Root = node;
+
+						break;
+					default:
+						throw new Exception($"({token.Line}:{token.Column}) Unexpected identifier: Expected [include, struct, enum, bitfield, schema]. Got [{token.Value}].");
 				}
-				else
-					throw new Exception($"({token.Line}:{token.Column}) Unexpected identifier: Expected [include, struct, enum, bitfield, schema]. Got [{token.Value}].");
 			}
 		}
 
@@ -466,7 +471,7 @@ namespace BeeSchema {
 			node.Name = token.Value;
 
 			ReadBody(node);
-			types.Add(node.Name, node);
+			Types.Add(node.Name, node);
 		}
 
 		void ReadBody(Node node) {
@@ -494,20 +499,29 @@ namespace BeeSchema {
 					child = new Node();
 					child.Name = $"({token.Line}:{token.Column})";
 
-					if (token.Value == "if")
-						child.Type = NodeType.IfCond;
-					else if (token.Value == "unless")
-						child.Type = NodeType.UnlessCond;
-					/*else if (token.Value == "else")
-						child.Type = NodeType.ElseCond;
-					else if (token.Value == "elif")
-						child.Type = NodeType.ElifCond;*/
-					else if (token.Value == "while")
-						child.Type = NodeType.WhileLoop;
-					else if (token.Value == "until")
-						child.Type = NodeType.UntilLoop;
-					/*else if (token.Value == "for")
-						child.Type = NodeType.ForLoop;*/
+					switch (token.Value) {
+						case "if":
+							child.Type = NodeType.IfCond;
+							break;
+						case "unless":
+							child.Type = NodeType.UnlessCond;
+							break;
+						/*case "else":
+							child.Type = NodeType.ElseCond;
+							break;
+						case "elif":
+							child.Type = NodeType.ElifCond;
+							break;*/
+						case "while":
+							child.Type = NodeType.WhileLoop;
+							break;
+						case "until":
+							child.Type = NodeType.UntilLoop;
+							break;
+						/*case "for":
+							child.Type = NodeType.ForLoop;
+							break;*/
+					}
 
 					//if (token.Value != "else") {
 					var cond = new Node();
@@ -566,15 +580,20 @@ namespace BeeSchema {
 								condChild.Type = NodeType.DivOper;
 								break;
 							case TokenType.Word:
-								if (token.Value.StartsWith("@")) {
-									if (token.Value == "@eof")
-										condChild.Type = NodeType.EofMacro;
-									else if (token.Value == "@size")
-										condChild.Type = NodeType.SizeMacro;
-									else if (token.Value == "@pos")
-										condChild.Type = NodeType.PosMacro;
-									else
-										throw new Exception($"({token.Line}:{token.Column}) Unknown macro.");
+								if (token.Value.StartsWith("@", StringComparison.Ordinal)) {
+									switch (token.Value) {
+										case "@eof":
+											condChild.Type = NodeType.EofMacro;
+											break;
+										case "@size":
+											condChild.Type = NodeType.SizeMacro;
+											break;
+										case "@pos":
+											condChild.Type = NodeType.PosMacro;
+											break;
+										default:
+											throw new Exception($"({token.Line}:{token.Column}) Unknown macro.");
+									}
 
 									break;
 								}
@@ -685,15 +704,20 @@ namespace BeeSchema {
 								alChild.Type = NodeType.SubOper;
 								break;
 							case TokenType.Word:
-								if (token.Value.StartsWith("@")) {
-									if (token.Value == "@eof")
-										alChild.Type = NodeType.EofMacro;
-									else if (token.Value == "@size")
-										alChild.Type = NodeType.SizeMacro;
-									else if (token.Value == "@pos")
-										alChild.Type = NodeType.PosMacro;
-									else
-										throw new Exception($"({token.Line}:{token.Column}) Unknown macro.");
+								if (token.Value.StartsWith("@", StringComparison.Ordinal)) {
+									switch (token.Value) {
+										case "@eof":
+											alChild.Type = NodeType.EofMacro;
+											break;
+										case "@size":
+											alChild.Type = NodeType.SizeMacro;
+											break;
+										case "@pos":
+											alChild.Type = NodeType.PosMacro;
+											break;
+										default:
+											throw new Exception($"({token.Line}:{token.Column}) Unknown macro.");
+									}
 
 									break;
 								}
@@ -784,7 +808,7 @@ namespace BeeSchema {
 					if (token.Type != TokenType.Number)
 						throw new Exception($"({token.Line}:{token.Column}) Expected numerical value.");
 
-					if (token.Value.StartsWith("0x"))
+					if (token.Value.StartsWith("0x", StringComparison.Ordinal))
 						val = long.Parse(token.Value.Substring(2), NumberStyles.HexNumber);
 					else
 						val = long.Parse(token.Value);
@@ -803,7 +827,7 @@ namespace BeeSchema {
 				node.Children.Add(child);
 			}
 
-			types.Add(node.Name, node);
+			Types.Add(node.Name, node);
 		}
 
 		void ReadBitfieldBlock(Node node) {
@@ -872,7 +896,7 @@ namespace BeeSchema {
 				node.Children.Add(child);
 			}
 
-			types.Add(node.Name, node);
+			Types.Add(node.Name, node);
 		}
 
 		void ReadSchemaBlock(Node node) {
@@ -885,10 +909,10 @@ namespace BeeSchema {
 			if (prim != NodeType.Error)
 				return prim;
 
-			if (types.Count == 0 || !types.ContainsKey(type))
+			if (Types.Count == 0 || !Types.ContainsKey(type))
 				return NodeType.Error;
 
-			var node = (Node)types[type];
+			var node = (Node)Types[type];
 
 			switch (node.Type) {
 				case NodeType.StructDef:
