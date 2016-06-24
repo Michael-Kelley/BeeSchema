@@ -3,6 +3,7 @@ enum SomeEnum : byte {
 	One,
 	Five		= 5,
 	Eight		= 8,
+	Nine,
 	EleventyOne	= 111
 }
 
@@ -11,7 +12,7 @@ struct SomeStruct {
 }
 
 schema {
-	a_byte			: byte;
+	a_byte			: byte;	# Look, Ma. Comments!
 	a_short			: short;
 	an_int			: int;
 	a_long			: long;

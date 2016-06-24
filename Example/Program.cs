@@ -7,7 +7,9 @@ namespace Example {
 		static void Main() {
 			// Create an instance of a Schema object from a file.
 			var schema = Schema.FromFile("example.bee");
+			var compiled = schema.Compile();
 			// Parse our example binary data with the resulting Schema instance.
+			var _result = compiled.Read("example.bin");
 			var result = schema.Parse("example.bin");
 
 			/* The Result class supports both implicit and explicit conversion.
@@ -17,7 +19,7 @@ namespace Example {
 			var anInt = (int)result["an_int"];
 			byte[] bytes = result["a_struct"]["bytes"];
 
-			// Print the values grabbed from the return Result.
+			// Print the values grabbed from the returned Result.
 			Console.WriteLine($"first result: {first}");
 			Console.WriteLine($"an_int: {anInt}");
 			Console.Write("a_struct.bytes: ");

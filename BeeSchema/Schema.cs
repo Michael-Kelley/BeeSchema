@@ -5,7 +5,6 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Net;
-using System.Reflection.Emit;
 using System.Text;
 
 namespace BeeSchema {
@@ -60,6 +59,9 @@ namespace BeeSchema {
 
 			return r;
 		}
+
+		public CompiledSchema Compile()
+			=> new CompiledSchema(this);
 
 		ResultCollection Parse(BinaryReader reader, List<Node> nodes) {
 			var r = new ResultCollection();
