@@ -45,202 +45,290 @@ namespace BeeSchema {
 		}
 
 		DynamicMethod CreateEnumReader(Node node) {
-			var r = new DynamicMethod($"Read{node.Name}", typeof(object), new[] { T_BinaryReader });
-			var il = r.GetILGenerator();
-
-			Action _ret = () => il.Emit(OpCodes.Ret);
-			Func<Type, LocalBuilder> _local = il.DeclareLocal;
-			Action<ConstructorInfo> _newobj = (x) => il.Emit(OpCodes.Newobj, x);
-			Action<LocalBuilder> _stloc = (x) => il.Emit(OpCodes.Stloc, x);
-			Action<LocalBuilder> _ldloc = (x) => il.Emit(OpCodes.Ldloc, x);
-			Action _ldarg0 = () => il.Emit(OpCodes.Ldarg_0);
-			Action<string> _ldstr = (x) => il.Emit(OpCodes.Ldstr, x);
-			Action<int> _ldci4 = (x) => il.Emit(OpCodes.Ldc_I4, x);
-			Action<long> _ldci8 = (x) => il.Emit(OpCodes.Ldc_I8, x);
-			Action<MethodInfo> _callvirt = (x) => il.Emit(OpCodes.Callvirt, x);
-			Action<Type> _box = (x) => il.Emit(OpCodes.Box, x);
-			Action _ceq = () => il.Emit(OpCodes.Ceq);
-			Action<Label> _br = (x) => il.Emit(OpCodes.Br, x);
-			Action<Label> _brfalse = (x) => il.Emit(OpCodes.Brfalse, x);
-			Func<Label> _label = il.DefineLabel;
-			Action<Label> _mark = il.MarkLabel;
-			Action _convi8 = () => il.Emit(OpCodes.Conv_I8);
+			var r = CreateActionDM<object, BinaryReader>($"Read{node.Name}");
+			var _ = r.GetILGenerator();
 
 			var type = node.Children[0].Type;
-			LocalBuilder value = null;
-			ConstructorInfo tupleCtor = null;
+			var value = _.Local<long>();
 
 			switch (type) {
 				case NodeType.Byte:
-					value = _local(typeof(byte));
-					tupleCtor = Tuple_StringByte_Ctor;
-					_ldarg0();
-					_callvirt(BinaryReader_ReadByte);
+					_.LdArg0();
+					_.CallVirt<BinaryReader>("ReadByte");
+					_.ConvI8();
 					break;
 				case NodeType.Short:
-					value = _local(typeof(short));
-					tupleCtor = Tuple_StringShort_Ctor;
-					_ldarg0();
-					_callvirt(BinaryReader_ReadInt16);
+					_.LdArg0();
+					_.CallVirt<BinaryReader>("ReadInt16");
+					_.ConvI8();
 					break;
 				case NodeType.Int:
-					value = _local(typeof(int));
-					tupleCtor = Tuple_StringInt_Ctor;
-					_ldarg0();
-					_callvirt(BinaryReader_ReadInt32);
+					_.LdArg0();
+					_.CallVirt<BinaryReader>("ReadInt32");
+					_.ConvI8();
 					break;
 				case NodeType.Long:
-					value = _local(typeof(long));
-					tupleCtor = Tuple_StringLong_Ctor;
-					_ldarg0();
-					_callvirt(BinaryReader_ReadInt64);
+					_.LdArg0();
+					_.CallVirt<BinaryReader>("ReadInt64");
 					break;
 			}
 
-			_stloc(value);
-			var end = _label();
+			_.StLoc(value);
+			var end = _.Label();
 
 			foreach (var c in node.Children) {
-				var label = _label();
+				var label = _.Label();
 
-				_ldloc(value);
-				_convi8();
-				_ldci8((long)c.Value);
+				_.LdLoc(value);
+				_.LdCI8((long)c.Value);
 
-				_ceq();
-				_brfalse(label);
+				_.CEq();
+				_.BrFalse(label);
 
-				_ldstr(c.Name);
-				_br(end);
+				_.LdStr(c.Name);
+				_.Br(end);
 
-				_mark(label);
+				_.Mark(label);
 			}
 
-			_ldstr("");
+			_.LdStr("");
 
-			_mark(end);
+			_.Mark(end);
 
-			_ldloc(value);
-			_newobj(tupleCtor);
-			_ret();
+			_.LdLoc(value);
+			_.NewObj<Tuple<string, long>, string, long>();
+
+			_.Ret();
 
 			return r;
 		}
 
 		void CreateReaderWriter(Node node, out DynamicMethod reader, out DynamicMethod writer) {
-			reader = new DynamicMethod($"Read{node.Name}", T_Result, new[] { T_BinaryReader });
-			writer = new DynamicMethod($"Write{node.Name}", typeof(void), new[] { T_BinaryReader, T_Result });
-			var il = reader.GetILGenerator();
+			reader = CreateActionDM<Result, BinaryReader>($"Read{node.Name}");
+			writer = CreateFuncDM<BinaryReader, Result>($"Write{node.Name}");
+			var ril = reader.GetILGenerator();
+			var wil = writer.GetILGenerator();
 
-			Action _ret = () => il.Emit(OpCodes.Ret);
-			Func<Type, LocalBuilder> _local = il.DeclareLocal;
-			Action<ConstructorInfo> _newobj = (x) => il.Emit(OpCodes.Newobj, x);
-			Action<LocalBuilder> _stloc = (x) => il.Emit(OpCodes.Stloc, x);
-			Action<LocalBuilder> _ldloc = (x) => il.Emit(OpCodes.Ldloc, x);
-			Action<FieldInfo> _stfld = (x) => il.Emit(OpCodes.Stfld, x);
-			Action<FieldInfo> _ldfld = (x) => il.Emit(OpCodes.Ldfld, x);
-			Action<string> _ldstr = (x) => il.Emit(OpCodes.Ldstr, x);
-			Action<int> _ldci4s = (x) => il.Emit(OpCodes.Ldc_I4_S, x);
-			Action _ldarg0 = () => il.Emit(OpCodes.Ldarg_0);
-			Action<MethodInfo> _call = (x) => il.Emit(OpCodes.Call, x);
-			Action<MethodInfo> _callvirt = (x) => il.Emit(OpCodes.Callvirt, x);
-			Action<Type> _box = (x) => il.Emit(OpCodes.Box, x);
-			Action _pop = () => il.Emit(OpCodes.Pop);
+			var _ = ril;
 
-			var result = _local(T_Result);
-			var collection = _local(T_ResultCollection);
+			var result = _.Local<Result>();
+			var collection = _.Local<ResultCollection>();
 
-			_newobj(Result_Ctor);
-			_stloc(result);
+			_.NewObj<Result>();
+			_.StLoc(result);
 
-			_newobj(ResultCollection_Ctor);
-			_stloc(collection);
-			_ldloc(result);
-			_ldloc(collection);
-			_stfld(Result_Value);
+			_.NewObj<ResultCollection>();
+			_.StLoc(collection);
+			_.LdLoc(result);
+			_.LdLoc(collection);
+			_.StFld<Result>("Value");
 
-			foreach (var c in node.Children) {
-				var r = _local(T_Result);
-				_newobj(Result_Ctor);
-				_stloc(r);
+			foreach (var c in node.Children)
+				ProcessChildNode(c, _, wil, collection);
 
-				_ldloc(r);
-				_ldci4s((int)c.Type);
-				_stfld(Result_Type);
+			_.LdLoc(result);
+			_.Ret();
+		}
 
-				_ldloc(r);
-				_ldstr(c.Name);
-				_stfld(Result_Name);
+		void ProcessChildNode(Node node, ILGenerator read, ILGenerator write, LocalBuilder collection) {
+			var _ = read;
 
-				_ldloc(r);
-				_ldarg0();
-				_callvirt(BinaryReader_GetBaseStream);
-				_callvirt(Stream_GetPosition);
-				_stfld(Result_Position);
+			if (node.Type == NodeType.IfCond) {
+				var cond = node.Children[0].Children;
+				cond = InfixToPostFix(cond);
 
-				if (c.Comment != null) {
-					_ldloc(r);
-					_ldstr(c.Comment);
-					_stfld(Result_Comment);
+				var end = _.Label();
+
+				foreach (var c in cond) {
+					switch(c.Type) {
+						case NodeType.Long:
+							_.LdCI8((long)c.Value);
+							break;
+						case NodeType.String:
+							_.LdLoc(collection);
+							_.LdStr((string)c.Value);
+							_.CallVirt<ResultCollection, string>("get_Item");
+							_.LdFld<Result>("Value");
+							_.UnboxAny<long>();
+							break;
+						case NodeType.MulOper:
+							_.Mul();
+							break;
+						case NodeType.DivOper:
+							_.Div();
+							break;
+						case NodeType.AddOper:
+							_.Add();
+							break;
+						case NodeType.SubOper:
+							_.Sub();
+							break;
+						case NodeType.EqualComp:
+							_.CEq();
+							_.BrFalse(end);
+							break;
+					}
 				}
 
-				switch (c.Type) {
-					case NodeType.Byte:
-						_ldloc(r);
-						_ldarg0();
-						_callvirt(BinaryReader_ReadByte);
-						_box(typeof(byte));
-						break;
-					case NodeType.Short:
-						_ldloc(r);
-						_ldarg0();
-						_callvirt(BinaryReader_ReadInt16);
-						_box(typeof(short));
-						break;
-					case NodeType.Int:
-						_ldloc(r);
-						_ldarg0();
-						_callvirt(BinaryReader_ReadInt32);
-						_box(typeof(int));
-						break;
-					case NodeType.Long:
-						_ldloc(r);
-						_ldarg0();
-						_callvirt(BinaryReader_ReadInt64);
-						_box(typeof(long));
-						break;
-					case NodeType.Float:
-						_ldloc(r);
-						_ldarg0();
-						_callvirt(BinaryReader_ReadSingle);
-						_box(typeof(float));
-						break;
-					case NodeType.Struct:
-						_ldloc(r);
-						_ldarg0();
-						_call(customTypeReaders[(string)c.Value]);
-						_ldfld(Result_Value);
-						break;
-					case NodeType.Enum:
-						_ldloc(r);
-						_ldarg0();
-						_call(enumReaders[(string)c.Value]);
-						break;
-					default:
-						_ldloc(r);
-						il.Emit(OpCodes.Ldnull);
-						break;
-				}
+				var body = node.Children[1].Children;
 
-				_stfld(Result_Value);
+				foreach (var n in body)
+					ProcessChildNode(n, read, write, collection);
 
-				_ldloc(collection);
-				_ldloc(r);
-				_callvirt(ResultCollection_Add);
+				_.Mark(end);
+
+				return;
 			}
 
-			_ldloc(result);
-			_ret();
+			var r = _.Local<Result>();
+			_.NewObj<Result>();
+			_.StLoc(r);
+
+			_.LdLoc(r);
+			_.LdCI4((int)node.Type);
+			_.StFld<Result>("Type");
+
+			_.LdLoc(r);
+			_.LdStr(node.Name);
+			_.StFld<Result>("Name");
+
+			_.LdLoc(r);
+			_.LdArg0();
+			_.CallVirt<BinaryReader>("get_BaseStream");
+			_.CallVirt<Stream>("get_Position");
+			_.StFld<Result>("Position");
+
+			if (node.Comment != null) {
+				_.LdLoc(r);
+				_.LdStr(node.Comment);
+				_.StFld<Result>("Comment");
+			}
+
+			switch (node.Type) {
+				case NodeType.Bool:
+					_.LdLoc(r);
+					_.LdArg0();
+					_.CallVirt<BinaryReader>("ReadBoolean");
+					_.Box<bool>();
+					break;
+				case NodeType.Byte:
+					_.LdLoc(r);
+					_.LdArg0();
+					_.CallVirt<BinaryReader>("ReadByte");
+					_.ConvI8();
+					_.Box<long>();
+					break;
+				case NodeType.Short:
+					_.LdLoc(r);
+					_.LdArg0();
+					_.CallVirt<BinaryReader>("ReadInt16");
+					_.ConvI8();
+					_.Box<long>();
+					break;
+				case NodeType.Int:
+					_.LdLoc(r);
+					_.LdArg0();
+					_.CallVirt<BinaryReader>("ReadInt32");
+					_.ConvI8();
+					_.Box<long>();
+					break;
+				case NodeType.Long:
+					_.LdLoc(r);
+					_.LdArg0();
+					_.CallVirt<BinaryReader>("ReadInt64");
+					_.Box<long>();
+					break;
+				case NodeType.Float:
+					_.LdLoc(r);
+					_.LdArg0();
+					_.CallVirt<BinaryReader>("ReadSingle");
+					_.Box<float>();
+					break;
+				case NodeType.Struct:
+					_.LdLoc(r);
+					_.LdArg0();
+					_.Call(customTypeReaders[(string)node.Value]);
+					_.LdFld<Result>("Value");
+					break;
+				case NodeType.Enum:
+					_.LdLoc(r);
+					_.LdArg0();
+					_.Call(enumReaders[(string)node.Value]);
+					break;
+				default:
+					_.LdLoc(r);
+					_.LdNull();
+					break;
+			}
+
+			_.StFld<Result>("Value");
+
+			_.LdLoc(collection);
+			_.LdLoc(r);
+			_.CallVirt<ResultCollection>("Add");
+		}
+
+		List<Node> InfixToPostFix(List<Node> nodes) {
+			var r = new List<Node>();
+			var stack = new Stack<Node>();
+
+			foreach (var n in nodes) {
+				if (n.Type > NodeType.Operation && n.Type < NodeType.OrCond) {
+					while (stack.Count > 0 && stack.Peek().Type != NodeType.OpenParens) {
+						if (Precedence(stack.Peek().Type) >= Precedence(n.Type))
+							r.Add(stack.Pop());
+						else
+							break;
+					}
+
+					stack.Push(n);
+				}
+				else if (n.Type == NodeType.OpenParens)
+					stack.Push(n);
+				else if (n.Type == NodeType.CloseParens) {
+					while (stack.Count > 0 && stack.Peek().Type != NodeType.OpenParens)
+						r.Add(stack.Pop());
+
+					if (stack.Count > 0)
+						stack.Pop();
+				}
+				else
+					r.Add(n);
+			}
+
+			while (stack.Count > 0)
+				r.Add(stack.Pop());
+
+			return r;
+		}
+
+		int Precedence(NodeType n) {
+			int result = 0;
+			switch (n) {
+				case NodeType.MulOper:
+				case NodeType.DivOper:
+					result = 10;
+					break;
+				case NodeType.AddOper:
+				case NodeType.SubOper:
+					result = 9;
+					break;
+				case NodeType.NotComp:
+					result = 8;
+					break;
+				case NodeType.EqualComp:
+				case NodeType.GoEComp:
+				case NodeType.GreaterComp:
+				case NodeType.LessComp:
+				case NodeType.LoEComp:
+				case NodeType.NEqualComp:
+					result = 7;
+					break;
+				default:
+					result = 0;
+					break;
+			}
+			return result;
 		}
 
 		public ResultCollection Read(string filename) {

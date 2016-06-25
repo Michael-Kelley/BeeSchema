@@ -20,4 +20,8 @@ schema {
 	another_float	: float;
 	a_struct		: SomeStruct;
 	an_enum			: SomeEnum;
+
+	if (a_short + 5 == 14 / 2) {
+		lol_nope	: bool;
+	}
 }

@@ -56,6 +56,9 @@ namespace BeeSchema {
 		SizeMacro,
 		PosMacro,
 
+		OpenParens,
+		CloseParens,
+
 		Error = -1
 	}
 }
