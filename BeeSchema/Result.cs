@@ -41,17 +41,17 @@ namespace BeeSchema {
 		public static implicit operator DateTime(Result r) => (DateTime)r.Value;
 
 		public static implicit operator bool[] (Result r) => r.Select(a => (bool)a).ToArray();
-		public static implicit operator byte[] (Result r) => r.Select(a => (byte)a).ToArray();
-		public static implicit operator sbyte[] (Result r) => r.Select(a => (sbyte)a).ToArray();
-		public static implicit operator ushort[] (Result r) => r.Select(a => (ushort)a).ToArray();
-		public static implicit operator short[] (Result r) => r.Select(a => (short)a).ToArray();
-		public static implicit operator uint[] (Result r) => r.Select(a => (uint)a).ToArray();
-		public static implicit operator int[] (Result r) => r.Select(a => (int)a).ToArray();
-		public static implicit operator ulong[] (Result r) => r.Select(a => (ulong)a).ToArray();
+		public static implicit operator byte[] (Result r) => r.Select(a => (byte)(long)a).ToArray();
+		public static implicit operator sbyte[] (Result r) => r.Select(a => (sbyte)(long)a).ToArray();
+		public static implicit operator ushort[] (Result r) => r.Select(a => (ushort)(long)a).ToArray();
+		public static implicit operator short[] (Result r) => r.Select(a => (short)(long)a).ToArray();
+		public static implicit operator uint[] (Result r) => r.Select(a => (uint)(long)a).ToArray();
+		public static implicit operator int[] (Result r) => r.Select(a => (int)(long)a).ToArray();
+		public static implicit operator ulong[] (Result r) => r.Select(a => (ulong)(long)a).ToArray();
 		public static implicit operator long[] (Result r) => r.Select(a => (long)a).ToArray();
 		public static implicit operator float[] (Result r) => r.Select(a => (float)a).ToArray();
 		public static implicit operator double[] (Result r) => r.Select(a => (double)a).ToArray();
-		public static implicit operator char[] (Result r) => r.Select(a => (char)a).ToArray();
+		public static implicit operator char[] (Result r) => ((string)r.Value).ToCharArray();
 		public static implicit operator string[] (Result r) => r.Select(a => (string)a).ToArray();
 		public static implicit operator IPAddress[] (Result r) => r.Select(a => (IPAddress)a).ToArray();
 		public static implicit operator DateTime[] (Result r) => r.Select(a => (DateTime)a).ToArray();

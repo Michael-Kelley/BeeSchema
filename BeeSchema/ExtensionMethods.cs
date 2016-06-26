@@ -11,6 +11,9 @@ namespace BeeSchema {
 		public static void Add(this ILGenerator il)
 			=> il.Emit(OpCodes.Add);
 
+		public static void And(this ILGenerator il)
+			=> il.Emit(OpCodes.And);
+
 		/// <summary>
 		/// Pop two values from the stack and branch to the label if equal.
 		/// </summary>
@@ -98,6 +101,8 @@ namespace BeeSchema {
 		/// <param name="meth">The name of the method to call.</param>
 		public static void Call<T>(this ILGenerator il, string meth)
 			=> il.Emit(OpCodes.Call, typeof(T).GetMethod(meth));
+		public static void Call<T, T1>(this ILGenerator il, string meth)
+			=> il.Emit(OpCodes.Call, typeof(T).GetMethod(meth, new[] { typeof(T1) }));
 		public static void Call<T, T1, T2, T3>(this ILGenerator il, string meth)
 			=> il.Emit(OpCodes.Call, typeof(T).GetMethod(meth, new[] { typeof(T1), typeof(T2), typeof(T3) }));
 
@@ -108,6 +113,9 @@ namespace BeeSchema {
 
 		public static void CEq(this ILGenerator il)
 			=> il.Emit(OpCodes.Ceq);
+
+		public static void ConvI4(this ILGenerator il)
+			=> il.Emit(OpCodes.Conv_I4);
 
 		public static void ConvI8(this ILGenerator il)
 			=> il.Emit(OpCodes.Conv_I8);
@@ -129,6 +137,9 @@ namespace BeeSchema {
 
 		public static void LdCI4_1(this ILGenerator il)
 			=> il.Emit(OpCodes.Ldc_I4_1);
+
+		public static void LdCI4_4(this ILGenerator il)
+			=> il.Emit(OpCodes.Ldc_I4_4);
 
 		public static void LdCI8(this ILGenerator il, long i8)
 			=> il.Emit(OpCodes.Ldc_I8, i8);
@@ -156,12 +167,18 @@ namespace BeeSchema {
 
 		public static void NewObj<T>(this ILGenerator il)
 			=> il.Emit(OpCodes.Newobj, typeof(T).GetConstructor(Type.EmptyTypes));
-
+		public static void NewObj<T, T1>(this ILGenerator il)
+			=> il.Emit(OpCodes.Newobj, typeof(T).GetConstructor(new[] { typeof(T1) }));
 		public static void NewObj<T, T1, T2>(this ILGenerator il)
 			=> il.Emit(OpCodes.Newobj, typeof(T).GetConstructor(new[] { typeof(T1), typeof(T2) }));
+		public static void NewObj<T, T1, T2, T3, T4, T5, T6, T7, T8>(this ILGenerator il)
+			=> il.Emit(OpCodes.Newobj, typeof(T).GetConstructor(new[] { typeof(T1), typeof(T2), typeof(T3), typeof(T4), typeof(T5), typeof(T6), typeof(T7), typeof(T8) }));
 
 		public static void Ret(this ILGenerator il)
 			=> il.Emit(OpCodes.Ret);
+
+		public static void ShR(this ILGenerator il)
+			=> il.Emit(OpCodes.Shr);
 
 		public static void StFld<T>(this ILGenerator il, string fld)
 			=> il.Emit(OpCodes.Stfld, typeof(T).GetField(fld));

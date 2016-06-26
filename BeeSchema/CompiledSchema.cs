@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Net;
 using System.Reflection;
 using System.Reflection.Emit;
 using System.Text;
@@ -13,15 +14,16 @@ namespace BeeSchema {
 		delegate Result Reader(BinaryReader reader);
 		delegate void Writer(BinaryWriter writer, Result result);
 
-		Dictionary<string, DynamicMethod> customTypeReaders, enumReaders;
-		Dictionary<string, DynamicMethod> customTypeWriters;
+		Dictionary<string, DynamicMethod> structReaders, enumReaders, bitfieldReaders;
+		Dictionary<string, DynamicMethod> structWriters;
 		readonly Reader schemaReader;
 		readonly Writer schemaWriter;
 
 		internal CompiledSchema(Schema schema) {
-			customTypeReaders = new Dictionary<string, DynamicMethod>();
+			structReaders = new Dictionary<string, DynamicMethod>();
 			enumReaders = new Dictionary<string, DynamicMethod>();
-			customTypeWriters = new Dictionary<string, DynamicMethod>();
+			bitfieldReaders = new Dictionary<string, DynamicMethod>();
+			structWriters = new Dictionary<string, DynamicMethod>();
 
 			foreach (var t in schema.Types.Values) {
 				if (t.Type == NodeType.EnumDef) {
@@ -32,10 +34,18 @@ namespace BeeSchema {
 					continue;
 				}
 
+				if (t.Type == NodeType.BitfieldDef) {
+					var method = CreateBitfieldReader(t);
+					var del = method.CreateDelegate(typeof(Func<BinaryReader, ResultCollection>));
+					var m = del.Method;
+					bitfieldReaders[t.Name] = method;
+					continue;
+				}
+
 				DynamicMethod r, w;
 				CreateReaderWriter(t, out r, out w);
-				customTypeReaders[t.Name] = r;
-				customTypeWriters[t.Name] = w;
+				structReaders[t.Name] = r;
+				structWriters[t.Name] = w;
 			}
 
 			DynamicMethod reader, writer;
@@ -52,6 +62,11 @@ namespace BeeSchema {
 			var value = _.Local<long>();
 
 			switch (type) {
+				case NodeType.SByte:
+					_.LdArg0();
+					_.CallVirt<BinaryReader>("ReadSByte");
+					_.ConvI8();
+					break;
 				case NodeType.Byte:
 					_.LdArg0();
 					_.CallVirt<BinaryReader>("ReadByte");
@@ -62,14 +77,29 @@ namespace BeeSchema {
 					_.CallVirt<BinaryReader>("ReadInt16");
 					_.ConvI8();
 					break;
+				case NodeType.UShort:
+					_.LdArg0();
+					_.CallVirt<BinaryReader>("ReadUInt16");
+					_.ConvI8();
+					break;
 				case NodeType.Int:
 					_.LdArg0();
 					_.CallVirt<BinaryReader>("ReadInt32");
 					_.ConvI8();
 					break;
+				case NodeType.UInt:
+					_.LdArg0();
+					_.CallVirt<BinaryReader>("ReadUInt32");
+					_.ConvI8();
+					break;
 				case NodeType.Long:
 					_.LdArg0();
 					_.CallVirt<BinaryReader>("ReadInt64");
+					break;
+				case NodeType.ULong:
+					_.LdArg0();
+					_.CallVirt<BinaryReader>("ReadUInt64");
+					_.ConvI8();
 					break;
 			}
 
@@ -97,6 +127,119 @@ namespace BeeSchema {
 			_.LdLoc(value);
 			_.NewObj<Tuple<string, long>, string, long>();
 
+			_.Ret();
+
+			return r;
+		}
+
+		DynamicMethod CreateBitfieldReader(Node node) {
+			var r = CreateActionDM<ResultCollection, BinaryReader>($"Read{node.Name}");
+			var _ = r.GetILGenerator();
+
+			var type = node.Children[0].Type;
+			var value = _.Local<long>();
+
+			switch (type) {
+				case NodeType.SByte:
+					_.LdArg0();
+					_.CallVirt<BinaryReader>("ReadSByte");
+					_.ConvI8();
+					break;
+				case NodeType.Byte:
+					_.LdArg0();
+					_.CallVirt<BinaryReader>("ReadByte");
+					_.ConvI8();
+					break;
+				case NodeType.Short:
+					_.LdArg0();
+					_.CallVirt<BinaryReader>("ReadInt16");
+					_.ConvI8();
+					break;
+				case NodeType.UShort:
+					_.LdArg0();
+					_.CallVirt<BinaryReader>("ReadUInt16");
+					_.ConvI8();
+					break;
+				case NodeType.Int:
+					_.LdArg0();
+					_.CallVirt<BinaryReader>("ReadInt32");
+					_.ConvI8();
+					break;
+				case NodeType.UInt:
+					_.LdArg0();
+					_.CallVirt<BinaryReader>("ReadUInt32");
+					_.ConvI8();
+					break;
+				case NodeType.Long:
+					_.LdArg0();
+					_.CallVirt<BinaryReader>("ReadInt64");
+					break;
+				case NodeType.ULong:
+					_.LdArg0();
+					_.CallVirt<BinaryReader>("ReadUInt64");
+					_.ConvI8();
+					break;
+			}
+
+			_.StLoc(value);
+
+			var col = _.Local<ResultCollection>();
+			_.NewObj<ResultCollection>();
+			_.StLoc(col);
+
+			var pos = _.Local<long>();
+			_.LdArg0();
+			_.CallVirt<BinaryReader>("get_BaseStream");
+			_.CallVirt<Stream>("get_Position");
+			_.StLoc(pos);
+
+			foreach (var c in node.Children) {
+				var re = _.Local<Result>();
+				_.NewObj<Result>();
+				_.StLoc(re);
+
+				_.LdLoc(re);
+				_.LdCI4((int)c.Type);
+				_.StFld<Result>("Type");
+
+				_.LdLoc(re);
+				_.LdStr(c.Name);
+
+				_.StFld<Result>("Name");
+
+				_.LdLoc(re);
+				_.LdLoc(pos);
+				_.StFld<Result>("Position");
+
+				if (c.Comment != null) {
+					_.LdLoc(re);
+					_.LdStr(c.Comment);
+					_.StFld<Result>("Comment");
+				}
+
+				_.LdLoc(re);
+				_.LdStr(c.Type.ToString().ToLower());
+				_.StFld<Result>("TypeName");
+
+				_.LdLoc(re);
+				_.LdLoc(value);
+				_.ConvI8();
+				_.LdCI8((1 << (int)(long)c.Value) - 1);
+				_.And();
+				_.Box<long>();
+				_.StFld<Result>("Value");
+
+				_.LdLoc(value);
+				_.LdCI4((int)(long)c.Value);
+				_.ShR();
+				_.StLoc(value);
+
+				_.LdLoc(col);
+				_.LdLoc(re);
+				_.CallVirt<ResultCollection>("Add");
+			}
+
+			_.LdLoc(col);
 			_.Ret();
 
 			return r;
@@ -297,20 +440,42 @@ namespace BeeSchema {
 				_.StFld<Result>("Comment");
 			}
 
+			_.LdLoc(r);
+
+			if (node.Type == NodeType.Struct
+				|| node.Type == NodeType.Enum
+				|| node.Type == NodeType.Bitfield)
+				_.LdStr((string)node.Value);
+			else if (node.Type == NodeType.Array) {
+				var tnode = node.Children[0];
+
+				if (tnode.Type == NodeType.Struct
+					|| tnode.Type == NodeType.Enum
+					|| tnode.Type == NodeType.Bitfield)
+					_.LdStr($"{tnode.Value}[]");
+				else
+					_.LdStr($"{tnode.Type.ToString().ToLower()}[]");
+			}
+			else
+				_.LdStr(node.Type.ToString().ToLower());
+
+			_.StFld<Result>("TypeName");
+
 			switch (node.Type) {
 				case NodeType.Bool:
-					_.LdLoc(r);
-					_.LdStr("bool");
-					_.StFld<Result>("TypeName");
 					_.LdLoc(r);
 					_.LdArg0();
 					_.CallVirt<BinaryReader>("ReadBoolean");
 					_.Box<bool>();
 					break;
-				case NodeType.Byte:
+				case NodeType.SByte:
 					_.LdLoc(r);
-					_.LdStr("byte");
-					_.StFld<Result>("TypeName");
+					_.LdArg0();
+					_.CallVirt<BinaryReader>("ReadSByte");
+					_.ConvI8();
+					_.Box<long>();
+					break;
+				case NodeType.Byte:
 					_.LdLoc(r);
 					_.LdArg0();
 					_.CallVirt<BinaryReader>("ReadByte");
@@ -319,55 +484,95 @@ namespace BeeSchema {
 					break;
 				case NodeType.Short:
 					_.LdLoc(r);
-					_.LdStr("short");
-					_.StFld<Result>("TypeName");
-					_.LdLoc(r);
 					_.LdArg0();
 					_.CallVirt<BinaryReader>("ReadInt16");
 					_.ConvI8();
 					_.Box<long>();
 					break;
-				case NodeType.Int:
+				case NodeType.UShort:
 					_.LdLoc(r);
-					_.LdStr("int");
-					_.StFld<Result>("TypeName");
+					_.LdArg0();
+					_.CallVirt<BinaryReader>("ReadUInt16");
+					_.ConvI8();
+					_.Box<long>();
+					break;
+				case NodeType.Int:
 					_.LdLoc(r);
 					_.LdArg0();
 					_.CallVirt<BinaryReader>("ReadInt32");
 					_.ConvI8();
 					_.Box<long>();
 					break;
-				case NodeType.Long:
+				case NodeType.UInt:
 					_.LdLoc(r);
-					_.LdStr("long");
-					_.StFld<Result>("TypeName");
+					_.LdArg0();
+					_.CallVirt<BinaryReader>("ReadUInt32");
+					_.ConvI8();
+					_.Box<long>();
+					break;
+				case NodeType.Long:
 					_.LdLoc(r);
 					_.LdArg0();
 					_.CallVirt<BinaryReader>("ReadInt64");
 					_.Box<long>();
 					break;
-				case NodeType.Float:
+				case NodeType.ULong:
 					_.LdLoc(r);
-					_.LdStr("float");
-					_.StFld<Result>("TypeName");
+					_.LdArg0();
+					_.CallVirt<BinaryReader>("ReadUInt64");
+					_.ConvI8();
+					_.Box<long>();
+					break;
+				case NodeType.Float:
 					_.LdLoc(r);
 					_.LdArg0();
 					_.CallVirt<BinaryReader>("ReadSingle");
 					_.Box<float>();
 					break;
-				case NodeType.Struct:
-					_.LdLoc(r);
-					_.LdStr((string)node.Value);
-					_.StFld<Result>("TypeName");
+				case NodeType.Double:
 					_.LdLoc(r);
 					_.LdArg0();
-					_.Call(customTypeReaders[(string)node.Value]);
+					_.CallVirt<BinaryReader>("ReadDouble");
+					_.Box<double>();
+					break;
+				case NodeType.Char:
+					_.LdLoc(r);
+					_.LdArg0();
+					_.CallVirt<BinaryReader>("ReadChar");
+					_.Box<char>();
+					break;
+				case NodeType.String:
+					_.LdLoc(r);
+					_.LdArg0();
+					_.CallVirt<BinaryReader>("ReadString");
+					break;
+				case NodeType.IPAddress:
+					_.LdLoc(r);
+					_.LdArg0();
+					_.LdCI4_4();
+					_.CallVirt<BinaryReader>("ReadBytes");
+					_.NewObj<IPAddress, byte[]>();
+					break;
+				case NodeType.Epoch:
+					_.LdLoc(r);
+					_.NewObj<DateTime, int, int, int, int, int, int, int, DateTimeKind>();
+					_.Dup();
+					_.LdArg0();
+					_.CallVirt<BinaryReader>("ReadUInt32");
+					_.Call<DateTime, double>("AddSeconds");
+					break;
+				case NodeType.Struct:
+					_.LdLoc(r);
+					_.LdArg0();
+					_.Call(structReaders[(string)node.Value]);
 					_.LdFld<Result>("Value");
 					break;
-				case NodeType.Enum:
+				case NodeType.Bitfield:
 					_.LdLoc(r);
-					_.LdStr((string)node.Value);
-					_.StFld<Result>("TypeName");
+					_.LdArg0();
+					_.Call(bitfieldReaders[(string)node.Value]);
+					break;
+				case NodeType.Enum:
 					_.LdLoc(r);
 					_.LdArg0();
 					_.Call(enumReaders[(string)node.Value]);
@@ -376,32 +581,10 @@ namespace BeeSchema {
 					var tnode = node.Children[0];
 					var lnode = node.Children[1];
 
-					_.LdLoc(r);
-
-					switch (tnode.Type) {
-						case NodeType.Struct:
-						case NodeType.Enum:
-							_.LdStr($"{tnode.Value}[]");
-							break;
-						default:
-							_.LdStr($"{tnode.Type.ToString().ToLower()}[]");
-							break;
-					}
-
-					_.StFld<Result>("TypeName");
-
-					var ind = _.Local<int>();
-					var len = _.Local<long>();
-					var col = _.Local<ResultCollection>();
-
-					_.LdCI4(0);
-					_.StLoc(ind);
-
-					_.NewObj<ResultCollection>();
-					_.StLoc(col);
-
 					var als = lnode.Children;
 					als = InfixToPostFix(als);
+
+					var len = _.Local<long>();
 
 					foreach (var c in als) {
 						switch (c.Type) {
@@ -441,6 +624,22 @@ namespace BeeSchema {
 					}
 
 					_.StLoc(len);
+
+					if (tnode.Type == NodeType.Char) {
+						_.LdLoc(r);
+						_.LdArg0();
+						_.LdLoc(len);
+						_.ConvI4();
+						_.CallVirt<BinaryReader, int>("ReadChars");
+						_.NewObj<string, char[]>();
+						break;
+					}
+
+					var ind = _.Local<int>();
+					var col = _.Local<ResultCollection>();
+
+					_.NewObj<ResultCollection>();
+					_.StLoc(col);
 
 					var loop = _.Label();
 					var end = _.Label();

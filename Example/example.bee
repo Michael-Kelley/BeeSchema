@@ -7,6 +7,12 @@ enum SomeEnum : byte {
 	EleventyOne	= 111
 }
 
+bitfield SomeBitfield : int {
+	First3Bits	: 3;
+	NextBit		: 1;
+	Last4Bits	: 4;
+}
+
 struct SomeStruct {
 	bytes	: byte[4];
 }
@@ -19,7 +25,10 @@ schema {
 	a_float,
 	another_float	: float;
 	a_struct		: SomeStruct;
+	arr_len			: byte;
+	a_char_array	: char[arr_len];
 	an_enum			: SomeEnum;
+	a_bitfield		: SomeBitfield;
 
 	unless (a_short + 5 == 14 / 2) {
 		a_bool	: bool;

@@ -5,7 +5,8 @@ using BeeSchema;
 namespace Example {
 	class Program {
 		static void Main() {
-			var m = typeof(ResultCollection).GetMethod("get_Item", new[] { typeof(string) });
+			var _a = 12345678L;
+			var _b = _a >> 4;
 			// Create an instance of a Schema object from a file.
 			var schema = Schema.FromFile("example.bee");
 			var compiled = schema.Compile();
