@@ -21,7 +21,11 @@ schema {
 	a_struct		: SomeStruct;
 	an_enum			: SomeEnum;
 
-	if (a_short + 5 == 14 / 2) {
+	unless (a_short + 5 == 14 / 2) {
 		a_bool	: bool;
+	}
+
+	until (@eof) {
+		another_bool	: bool;
 	}
 }

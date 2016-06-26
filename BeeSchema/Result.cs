@@ -25,13 +25,13 @@ namespace BeeSchema {
 		IEnumerator IEnumerable.GetEnumerator() => Children.GetEnumerator();
 
 		public static implicit operator bool(Result r) => (bool)r.Value;
-		public static implicit operator byte(Result r) => (byte)r.Value;
-		public static implicit operator sbyte(Result r) => (sbyte)r.Value;
-		public static implicit operator ushort(Result r) => (ushort)r.Value;
-		public static implicit operator short(Result r) => (short)r.Value;
-		public static implicit operator uint(Result r) => (uint)r.Value;
-		public static implicit operator int(Result r) => (int)r.Value;
-		public static implicit operator ulong(Result r) => (ulong)r.Value;
+		public static implicit operator byte(Result r) => (byte)(long)r.Value;
+		public static implicit operator sbyte(Result r) => (sbyte)(long)r.Value;
+		public static implicit operator ushort(Result r) => (ushort)(long)r.Value;
+		public static implicit operator short(Result r) => (short)(long)r.Value;
+		public static implicit operator uint(Result r) => (uint)(long)r.Value;
+		public static implicit operator int(Result r) => (int)(long)r.Value;
+		public static implicit operator ulong(Result r) => (ulong)(long)r.Value;
 		public static implicit operator long(Result r) => (long)r.Value;
 		public static implicit operator float(Result r) => (float)r.Value;
 		public static implicit operator double(Result r) => (double)r.Value;

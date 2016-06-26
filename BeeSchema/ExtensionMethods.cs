@@ -98,6 +98,8 @@ namespace BeeSchema {
 		/// <param name="meth">The name of the method to call.</param>
 		public static void Call<T>(this ILGenerator il, string meth)
 			=> il.Emit(OpCodes.Call, typeof(T).GetMethod(meth));
+		public static void Call<T, T1, T2, T3>(this ILGenerator il, string meth)
+			=> il.Emit(OpCodes.Call, typeof(T).GetMethod(meth, new[] { typeof(T1), typeof(T2), typeof(T3) }));
 
 		public static void CallVirt<T>(this ILGenerator il, string meth)
 			=> il.Emit(OpCodes.Callvirt, typeof(T).GetMethod(meth));
@@ -113,6 +115,9 @@ namespace BeeSchema {
 		public static void Div(this ILGenerator il)
 			=> il.Emit(OpCodes.Div);
 
+		public static void Dup(this ILGenerator il)
+			=> il.Emit(OpCodes.Dup);
+
 		public static Label Label(this ILGenerator il)
 			=> il.DefineLabel();
 
@@ -121,6 +126,9 @@ namespace BeeSchema {
 
 		public static void LdCI4(this ILGenerator il, int i4)
 			=> il.Emit(OpCodes.Ldc_I4, i4);
+
+		public static void LdCI4_1(this ILGenerator il)
+			=> il.Emit(OpCodes.Ldc_I4_1);
 
 		public static void LdCI8(this ILGenerator il, long i8)
 			=> il.Emit(OpCodes.Ldc_I8, i8);

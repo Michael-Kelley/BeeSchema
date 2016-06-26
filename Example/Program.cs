@@ -10,8 +10,8 @@ namespace Example {
 			var schema = Schema.FromFile("example.bee");
 			var compiled = schema.Compile();
 			// Parse our example binary data with the resulting Schema instance.
-			var _result = compiled.Read("example.bin");
-			var result = schema.Parse("example.bin");
+			//var result = schema.Parse("example.bin");
+			var result = compiled.Read("example.bin");
 
 			/* The Result class supports both implicit and explicit conversion.
 			   This makes it easy to get the Result's value if you know the expected data type.

@@ -129,18 +129,28 @@ namespace BeeSchema {
 			_.Ret();
 		}
 
-		void ProcessChildNode(Node node, ILGenerator read, ILGenerator write, LocalBuilder collection) {
+		void ProcessChildNode(Node node, ILGenerator read, ILGenerator write, LocalBuilder collection, LocalBuilder index = null) {
 			var _ = read;
 
 			if (node.Type == NodeType.IfCond
-				|| node.Type == NodeType.UnlessCond) {
+				|| node.Type == NodeType.UnlessCond
+				|| node.Type == NodeType.WhileLoop
+				|| node.Type == NodeType.UntilLoop) {
 				var cond = node.Children[0].Children;
 				cond = InfixToPostFix(cond);
 
 				var end = _.Label();
+				var condition = _.Label();
+				LocalBuilder ind = null;
+
+				if (node.Type == NodeType.WhileLoop
+					|| node.Type == NodeType.UntilLoop) {
+					ind = _.Local<int>();
+					_.Mark(condition);
+				}
 
 				foreach (var c in cond) {
-					switch(c.Type) {
+					switch (c.Type) {
 						case NodeType.Long:
 							_.LdCI8((long)c.Value);
 							break;
@@ -164,13 +174,15 @@ namespace BeeSchema {
 							_.Sub();
 							break;
 						case NodeType.EqualComp:
-							if (node.Type == NodeType.IfCond)
+							if (node.Type == NodeType.IfCond
+								|| node.Type == NodeType.WhileLoop)
 								_.BNEUn(end);
 							else
 								_.BEq(end);
 							break;
 						case NodeType.NEqualComp:
-							if (node.Type == NodeType.IfCond)
+							if (node.Type == NodeType.IfCond
+								|| node.Type == NodeType.WhileLoop)
 								_.BEq(end);
 							else
 								_.BNEUn(end);
@@ -182,30 +194,69 @@ namespace BeeSchema {
 								_.BGT(end);
 							break;
 						case NodeType.LessComp:
-							if (node.Type == NodeType.IfCond)
+							if (node.Type == NodeType.IfCond
+								|| node.Type == NodeType.WhileLoop)
 								_.BGE(end);
 							else
 								_.BLT(end);
 							break;
 						case NodeType.GoEComp:
-							if (node.Type == NodeType.IfCond)
+							if (node.Type == NodeType.IfCond
+								|| node.Type == NodeType.WhileLoop)
 								_.BLT(end);
 							else
 								_.BGE(end);
 							break;
 						case NodeType.LoEComp:
-							if (node.Type == NodeType.IfCond)
+							if (node.Type == NodeType.IfCond
+								|| node.Type == NodeType.WhileLoop)
 								_.BGT(end);
 							else
 								_.BLE(end);
+							break;
+						case NodeType.EofMacro:
+							_.LdArg0();
+							_.CallVirt<BinaryReader>("get_BaseStream");
+							_.CallVirt<Stream>("get_Position");
+							_.LdArg0();
+							_.CallVirt<BinaryReader>("get_BaseStream");
+							_.CallVirt<Stream>("get_Length");
+
+							if (node.Type == NodeType.IfCond
+								|| node.Type == NodeType.WhileLoop)
+								_.BLT(end);
+							else
+								_.BGE(end);
+							break;
+						case NodeType.PosMacro:
+							_.LdArg0();
+							_.CallVirt<BinaryReader>("get_BaseStream");
+							_.CallVirt<Stream>("get_Position");
+							break;
+						case NodeType.SizeMacro:
+							_.LdArg0();
+							_.CallVirt<BinaryReader>("get_BaseStream");
+							_.CallVirt<Stream>("get_Length");
 							break;
 					}
 				}
 
 				var body = node.Children[1].Children;
 
-				foreach (var n in body)
-					ProcessChildNode(n, read, write, collection);
+				foreach (var n in body) {
+					ProcessChildNode(n, read, write, collection, ind);
+
+					if (ind != null) {
+						_.LdLoc(ind);
+						_.LdCI4_1();
+						_.Add();
+						_.StLoc(ind);
+					}
+				}
+
+				if (node.Type == NodeType.WhileLoop
+					|| node.Type == NodeType.UntilLoop)
+					_.Br(condition);
 
 				_.Mark(end);
 
@@ -221,7 +272,17 @@ namespace BeeSchema {
 			_.StFld<Result>("Type");
 
 			_.LdLoc(r);
-			_.LdStr(node.Name);
+
+			if (index != null) {
+				_.LdStr("{0}[{1}]");
+				_.LdStr(node.Name);
+				_.LdLoc(index);
+				_.Box<int>();
+				_.Call<string, string, object, object>("Format");
+			}
+			else
+				_.LdStr(node.Name);
+
 			_.StFld<Result>("Name");
 
 			_.LdLoc(r);
@@ -239,11 +300,17 @@ namespace BeeSchema {
 			switch (node.Type) {
 				case NodeType.Bool:
 					_.LdLoc(r);
+					_.LdStr("bool");
+					_.StFld<Result>("TypeName");
+					_.LdLoc(r);
 					_.LdArg0();
 					_.CallVirt<BinaryReader>("ReadBoolean");
 					_.Box<bool>();
 					break;
 				case NodeType.Byte:
+					_.LdLoc(r);
+					_.LdStr("byte");
+					_.StFld<Result>("TypeName");
 					_.LdLoc(r);
 					_.LdArg0();
 					_.CallVirt<BinaryReader>("ReadByte");
@@ -252,12 +319,18 @@ namespace BeeSchema {
 					break;
 				case NodeType.Short:
 					_.LdLoc(r);
+					_.LdStr("short");
+					_.StFld<Result>("TypeName");
+					_.LdLoc(r);
 					_.LdArg0();
 					_.CallVirt<BinaryReader>("ReadInt16");
 					_.ConvI8();
 					_.Box<long>();
 					break;
 				case NodeType.Int:
+					_.LdLoc(r);
+					_.LdStr("int");
+					_.StFld<Result>("TypeName");
 					_.LdLoc(r);
 					_.LdArg0();
 					_.CallVirt<BinaryReader>("ReadInt32");
@@ -266,11 +339,17 @@ namespace BeeSchema {
 					break;
 				case NodeType.Long:
 					_.LdLoc(r);
+					_.LdStr("long");
+					_.StFld<Result>("TypeName");
+					_.LdLoc(r);
 					_.LdArg0();
 					_.CallVirt<BinaryReader>("ReadInt64");
 					_.Box<long>();
 					break;
 				case NodeType.Float:
+					_.LdLoc(r);
+					_.LdStr("float");
+					_.StFld<Result>("TypeName");
 					_.LdLoc(r);
 					_.LdArg0();
 					_.CallVirt<BinaryReader>("ReadSingle");
@@ -278,14 +357,116 @@ namespace BeeSchema {
 					break;
 				case NodeType.Struct:
 					_.LdLoc(r);
+					_.LdStr((string)node.Value);
+					_.StFld<Result>("TypeName");
+					_.LdLoc(r);
 					_.LdArg0();
 					_.Call(customTypeReaders[(string)node.Value]);
 					_.LdFld<Result>("Value");
 					break;
 				case NodeType.Enum:
 					_.LdLoc(r);
+					_.LdStr((string)node.Value);
+					_.StFld<Result>("TypeName");
+					_.LdLoc(r);
 					_.LdArg0();
 					_.Call(enumReaders[(string)node.Value]);
+					break;
+				case NodeType.Array:
+					var tnode = node.Children[0];
+					var lnode = node.Children[1];
+
+					_.LdLoc(r);
+
+					switch (tnode.Type) {
+						case NodeType.Struct:
+						case NodeType.Enum:
+							_.LdStr($"{tnode.Value}[]");
+							break;
+						default:
+							_.LdStr($"{tnode.Type.ToString().ToLower()}[]");
+							break;
+					}
+
+					_.StFld<Result>("TypeName");
+
+					var ind = _.Local<int>();
+					var len = _.Local<long>();
+					var col = _.Local<ResultCollection>();
+
+					_.LdCI4(0);
+					_.StLoc(ind);
+
+					_.NewObj<ResultCollection>();
+					_.StLoc(col);
+
+					var als = lnode.Children;
+					als = InfixToPostFix(als);
+
+					foreach (var c in als) {
+						switch (c.Type) {
+							case NodeType.Long:
+								_.LdCI8((long)c.Value);
+								break;
+							case NodeType.String:
+								_.LdLoc(collection);
+								_.LdStr((string)c.Value);
+								_.CallVirt<ResultCollection, string>("get_Item");
+								_.LdFld<Result>("Value");
+								_.UnboxAny<long>();
+								break;
+							case NodeType.MulOper:
+								_.Mul();
+								break;
+							case NodeType.DivOper:
+								_.Div();
+								break;
+							case NodeType.AddOper:
+								_.Add();
+								break;
+							case NodeType.SubOper:
+								_.Sub();
+								break;
+							case NodeType.PosMacro:
+								_.LdArg0();
+								_.CallVirt<BinaryReader>("get_BaseStream");
+								_.CallVirt<Stream>("get_Position");
+								break;
+							case NodeType.SizeMacro:
+								_.LdArg0();
+								_.CallVirt<BinaryReader>("get_BaseStream");
+								_.CallVirt<Stream>("get_Length");
+								break;
+						}
+					}
+
+					_.StLoc(len);
+
+					var loop = _.Label();
+					var end = _.Label();
+
+					_.Mark(loop);
+					_.LdLoc(ind);
+					_.ConvI8();
+					_.LdLoc(len);
+					_.BEq(end);
+
+					var cnode = new Node {
+						Type = tnode.Type,
+						Name = node.Name
+					};
+
+					ProcessChildNode(cnode, read, write, col, ind);
+
+					_.LdLoc(ind);
+					_.LdCI4_1();
+					_.Add();
+					_.StLoc(ind);
+					_.Br(loop);
+
+					_.Mark(end);
+					_.LdLoc(r);
+					_.LdLoc(col);
 					break;
 				default:
 					_.LdLoc(r);
