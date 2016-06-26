@@ -82,8 +82,7 @@ namespace BeeSchema {
 				_.LdLoc(value);
 				_.LdCI8((long)c.Value);
 
-				_.CEq();
-				_.BrFalse(label);
+				_.BNEUn(label);
 
 				_.LdStr(c.Name);
 				_.Br(end);
@@ -124,7 +123,7 @@ namespace BeeSchema {
 			_.StFld<Result>("Value");
 
 			foreach (var c in node.Children)
-				ProcessChildNode(c, _, wil, collection);
+				ProcessChildNode(c, ril, wil, collection);
 
 			_.LdLoc(result);
 			_.Ret();
@@ -133,7 +132,8 @@ namespace BeeSchema {
 		void ProcessChildNode(Node node, ILGenerator read, ILGenerator write, LocalBuilder collection) {
 			var _ = read;
 
-			if (node.Type == NodeType.IfCond) {
+			if (node.Type == NodeType.IfCond
+				|| node.Type == NodeType.UnlessCond) {
 				var cond = node.Children[0].Children;
 				cond = InfixToPostFix(cond);
 
@@ -164,8 +164,40 @@ namespace BeeSchema {
 							_.Sub();
 							break;
 						case NodeType.EqualComp:
-							_.CEq();
-							_.BrFalse(end);
+							if (node.Type == NodeType.IfCond)
+								_.BNEUn(end);
+							else
+								_.BEq(end);
+							break;
+						case NodeType.NEqualComp:
+							if (node.Type == NodeType.IfCond)
+								_.BEq(end);
+							else
+								_.BNEUn(end);
+							break;
+						case NodeType.GreaterComp:
+							if (node.Type == NodeType.IfCond)
+								_.BLE(end);
+							else
+								_.BGT(end);
+							break;
+						case NodeType.LessComp:
+							if (node.Type == NodeType.IfCond)
+								_.BGE(end);
+							else
+								_.BLT(end);
+							break;
+						case NodeType.GoEComp:
+							if (node.Type == NodeType.IfCond)
+								_.BLT(end);
+							else
+								_.BGE(end);
+							break;
+						case NodeType.LoEComp:
+							if (node.Type == NodeType.IfCond)
+								_.BGT(end);
+							else
+								_.BLE(end);
 							break;
 					}
 				}

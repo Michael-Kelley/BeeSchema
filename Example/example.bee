@@ -22,6 +22,6 @@ schema {
 	an_enum			: SomeEnum;
 
 	if (a_short + 5 == 14 / 2) {
-		lol_nope	: bool;
+		a_bool	: bool;
 	}
 }

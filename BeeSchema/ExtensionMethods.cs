@@ -1,27 +1,101 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace BeeSchema {
 	static class ExtensionMethods {
+		/// <summary>
+		/// Pop two values from the stack and push the sum on to the stack.
+		/// </summary>
+		/// <param name="il">this</param>
 		public static void Add(this ILGenerator il)
 			=> il.Emit(OpCodes.Add);
 
+		/// <summary>
+		/// Pop two values from the stack and branch to the label if equal.
+		/// </summary>
+		/// <param name="il">this</param>
+		/// <param name="lbl">The label to branch to if the values are equal.</param>
+		public static void BEq(this ILGenerator il, Label lbl)
+			=> il.Emit(OpCodes.Beq, lbl);
+
+		/// <summary>
+		/// Pop two values from the stack and branch to the label if the first is greater than or equal to the second.
+		/// </summary>
+		/// <param name="il">this</param>
+		/// <param name="lbl">The label to branch to if the first value is greater than or equal to the second.</param>
+		public static void BGE(this ILGenerator il, Label lbl)
+			=> il.Emit(OpCodes.Bge, lbl);
+
+		/// <summary>
+		/// Pop two values from the stack and branch to the label if the first is greater than the second.
+		/// </summary>
+		/// <param name="il">this</param>
+		/// <param name="lbl">The label to branch to if the first value is greater than the second.</param>
+		public static void BGT(this ILGenerator il, Label lbl)
+			=> il.Emit(OpCodes.Bgt, lbl);
+
+		/// <summary>
+		/// Pop two values from the stack and branch to the label if the first is less than or equal to the second.
+		/// </summary>
+		/// <param name="il">this</param>
+		/// <param name="lbl">The label to branch to if the first value is less than or equal to the second.</param>
+		public static void BLE(this ILGenerator il, Label lbl)
+			=> il.Emit(OpCodes.Ble, lbl);
+
+		/// <summary>
+		/// Pop two values from the stack and branch to the label if the first is less than the second.
+		/// </summary>
+		/// <param name="il">this</param>
+		/// <param name="lbl">The label to branch to if the first value is less than the second.</param>
+		public static void BLT(this ILGenerator il, Label lbl)
+			=> il.Emit(OpCodes.Blt, lbl);
+
+		/// <summary>
+		/// Pop two values from the stack and branch to the label if not equal.
+		/// </summary>
+		/// <param name="il">this</param>
+		/// <param name="lbl">The label to branch to if the values are not equal.</param>
+		public static void BNEUn(this ILGenerator il, Label lbl)
+			=> il.Emit(OpCodes.Bne_Un, lbl);
+
+		/// <summary>
+		/// Pop a valuetype from the stack and box it as an object instance.
+		/// </summary>
+		/// <typeparam name="T">The type of the value on the stack.</typeparam>
+		/// <param name="il">this</param>
 		public static void Box<T>(this ILGenerator il)
 			=> il.Emit(OpCodes.Box, typeof(T));
 
+		/// <summary>
+		/// Branch to the label.
+		/// </summary>
+		/// <param name="il">this</param>
+		/// <param name="lbl">The label to branch to.</param>
 		public static void Br(this ILGenerator il, Label lbl)
 			=> il.Emit(OpCodes.Br, lbl);
 
+		/// <summary>
+		/// Pop a value from the stack and branch to the label if 0, false, or null.
+		/// </summary>
+		/// <param name="il">this</param>
+		/// <param name="lbl">The label to branch to if the value is 0, false, or null.</param>
 		public static void BrFalse(this ILGenerator il, Label lbl)
 			=> il.Emit(OpCodes.Brfalse, lbl);
 
+		/// <summary>
+		/// Call a given method with a methodinfo using arguments on the stack.
+		/// </summary>
+		/// <param name="il">this</param>
+		/// <param name="meth">The MethodInfo of the method to call.</param>
 		public static void Call(this ILGenerator il, MethodInfo meth)
 			=> il.Emit(OpCodes.Call, meth);
+		/// <summary>
+		/// Call the method that matches the provided name using arguments on the stack.
+		/// </summary>
+		/// <typeparam name="T">The type containing the method.</typeparam>
+		/// <param name="il">this</param>
+		/// <param name="meth">The name of the method to call.</param>
 		public static void Call<T>(this ILGenerator il, string meth)
 			=> il.Emit(OpCodes.Call, typeof(T).GetMethod(meth));
 
