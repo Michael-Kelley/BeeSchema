@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="en-us">
+  <head>
+    <meta charset="UTF-8">
+    <title>Beeschema by Epidal</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" type="text/css" href="stylesheets/normalize.css" media="screen">
+    <link href='https://fonts.googleapis.com/css?family=Open+Sans:400,700' rel='stylesheet' type='text/css'>
+    <link rel="stylesheet" type="text/css" href="stylesheets/stylesheet.css" media="screen">
+    <link rel="stylesheet" type="text/css" href="stylesheets/github-light.css" media="screen">
+  </head>
+  <body>
+    <section class="page-header">
+      <h1 class="project-name">Beeschema</h1>
+      <h2 class="project-tagline">Binary Schema Library for C#</h2>
+      <a href="https://github.com/Epidal/BeeSchema" class="btn">View on GitHub</a>
+      <a href="https://github.com/Epidal/BeeSchema/zipball/master" class="btn">Download .zip</a>
+      <a href="https://github.com/Epidal/BeeSchema/tarball/master" class="btn">Download .tar.gz</a>
+    </section>
+
+    <section class="main-content">
+      <p><img src="http://github.com/Epidal/BeeSchema/beeschema.png" alt="BeeSchema Logo"></p>
+
+<h1>
+<a id="beeschema" class="anchor" href="#beeschema" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>BeeSchema</h1>
+
+<h2>
+<a id="binary-schema-library-for-c" class="anchor" href="#binary-schema-library-for-c" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Binary Schema Library for C#</h2>
+
+<p>BeeSchema allows you to define the structure of a binary file using a simple schema (*.bee) file, then read the file in a much more human way.  No more BinaryReader or manually reading data from Streams.</p>
+
+<p><em>NOTE: BeeSchema is still in development, so things may change and other things might not be too optimised.  Also, BeeSchema was designed as a replacement for the limited structure definition support in <a href="https://github.com/Epidal/Ostara">Ostara</a>.  As such, some features that you require may not be supported.</em></p>
+
+<h2>
+<a id="schema-files" class="anchor" href="#schema-files" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Schema Files</h2>
+
+<p>The structure of a binary file to be parsed by BeeSchema is defined in a simple text file (usually with the extension *.bee) that uses a custom language designed specifically for this purpose.  These schemas can then be loaded by BeeSchema, and later used to parse binary files and turn them into more human-readable data.
+The basic structure of any schema file consists of optional custom data types and a <strong>schema</strong> block that represents the entry point of the schema file.  This block is where BeeSchema will begin its parsing of binary files.  For example, a schema file for a simple binary file that consists of a 32-bit integer followed by an 8-bit integer might look like this:</p>
+
+<div class="highlight highlight-source-elm"><pre><span class="pl-en">schema </span><span class="pl-c1"><span class="pl-c1">{</span></span>
+  first_var <span class="pl-k">:</span> <span class="pl-c1">Int</span>;
+  next_var  <span class="pl-k">:</span> <span class="pl-c1">Byte</span>;
+<span class="pl-c1"><span class="pl-c1">}</span></span></pre></div>
+
+<h3>
+<a id="primitive-data-types" class="anchor" href="#primitive-data-types" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Primitive Data Types</h3>
+
+<p>BeeSchema supports a number of primitive data types.  The following table lists these types, along with a short description and their size in bytes.</p>
+
+<p><em>NOTE: Primitive type names are case-insensitive, so <code>an_int : int</code> is exactly the same as <code>an_int : Int</code></em></p>
+
+<table>
+<thead>
+<tr>
+<th>Type</th>
+<th>Size (bytes)</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>bool</td>
+<td>1</td>
+<td>A boolean value (true or false)</td>
+</tr>
+<tr>
+<td>byte</td>
+<td>1</td>
+<td>An unsigned 8-bit integer</td>
+</tr>
+<tr>
+<td>sbyte</td>
+<td>1</td>
+<td>A signed 8-bit integer</td>
+</tr>
+<tr>
+<td>ushort</td>
+<td>2</td>
+<td>An unsigned 16-bit integer</td>
+</tr>
+<tr>
+<td>short</td>
+<td>2</td>
+<td>A signed 16-bit integer</td>
+</tr>
+<tr>
+<td>uint</td>
+<td>4</td>
+<td>An unsigned 32-bit integer</td>
+</tr>
+<tr>
+<td>int</td>
+<td>4</td>
+<td>A signed 32-bit integer</td>
+</tr>
+<tr>
+<td>ulong</td>
+<td>8</td>
+<td>An unsigned 64-bit integer</td>
+</tr>
+<tr>
+<td>long</td>
+<td>8</td>
+<td>A signed 64-bit integer</td>
+</tr>
+<tr>
+<td>float</td>
+<td>4</td>
+<td>A 32-bit floating point integer</td>
+</tr>
+<tr>
+<td>double</td>
+<td>8</td>
+<td>A 64-bit floating point integer</td>
+</tr>
+<tr>
+<td>ipaddress</td>
+<td>4</td>
+<td>A 32-bit representation of an IP address, where each byte represents a portion of the address (eg. 0x04030201 = 1.2.3.4)</td>
+</tr>
+<tr>
+<td>epoch</td>
+<td>4</td>
+<td>A 32-bit value representing a date and time in Unix format (seconds since 01/01/1970)</td>
+</tr>
+</tbody>
+</table>
+
+<p>Arrays are also supported.  They can be declared like so:</p>
+
+<div class="highlight highlight-source-elm"><pre><span class="pl-en">a_byte_array</span>  <span class="pl-k">:</span> <span class="pl-k">Byte</span>[7];</pre></div>
+
+<p>You can use a previously-declared variable for the array length:</p>
+
+<div class="highlight highlight-source-elm"><pre><span class="pl-en">some_int</span>      <span class="pl-k">:</span> <span class="pl-k">Int</span>;
+<span class="pl-en">another_array</span> <span class="pl-k">:</span> <span class="pl-k">Float</span>[<span class="pl-smi">some_int</span>];</pre></div>
+
+<p>and even perform arithmetic operations in the length specifier:</p>
+
+<div class="highlight highlight-source-elm"><pre><span class="pl-en">some_other_int</span>        <span class="pl-k">:</span> <span class="pl-k">Int</span>;
+<span class="pl-en">oh_look_another_array</span> <span class="pl-k">:</span> <span class="pl-k">Char</span>[<span class="pl-smi">some_other_int</span> / 4];</pre></div>
+
+<p><em>NOTE: Referencing variables inside a custom type is not currently supported, but is planned for the future.  Absolute and relative pointers may also be added.</em></p>
+
+<h3>
+<a id="custom-data-types" class="anchor" href="#custom-data-types" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Custom Data Types</h3>
+
+<p>BeeSchema also supports custom data types in the form of structures, enumerations and bitfields.</p>
+
+<h4>
+<a id="structures" class="anchor" href="#structures" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Structures</h4>
+
+<p>Structures can be used to define the structure of a block of data.  They are useful for when your data file contains several blocks of data that share the same format.  Structures are defined with the <strong>struct</strong> keyword, and can contain any type and number of other variables, including other previously defined structures, enumerations or bitfields:</p>
+
+<div class="highlight highlight-source-elm"><pre><span class="pl-en">struct </span><span class="pl-c1">MyStruct</span> <span class="pl-c1"><span class="pl-c1">{</span></span>
+  my_int  <span class="pl-k">:</span> <span class="pl-c1">Int</span>;
+<span class="pl-c1"><span class="pl-c1">}</span></span></pre></div>
+
+<p>Once defined, structures can be used like any other type:</p>
+
+<div class="highlight highlight-source-elm"><pre><span class="pl-en">my_struct</span> <span class="pl-k">:</span> <span class="pl-k">MyStruct</span>;</pre></div>
+
+<p>When parsing structures, BeeSchema will return a collection of results, with each one representing a separate variable inside the struct (the same applies to bitfields and arrays).</p>
+
+<h4>
+<a id="enumerations" class="anchor" href="#enumerations" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Enumerations</h4>
+
+<p>Enumerations can be used for variables that have a fixed number of values that you might want to associate names with.  By default, values in an enumeration start at zero and increment by 1, but they can also be manually assigned.  Enumerations are defined with the <strong>enum</strong> keyword and must always declare a base type so that BeeSchema knows the size of the data to read:</p>
+
+<div class="highlight highlight-source-elm"><pre><span class="pl-en">enum </span><span class="pl-c1">MyEnum</span> <span class="pl-k">:</span> <span class="pl-c1">Int</span> <span class="pl-c1"><span class="pl-c1">{</span></span>
+  <span class="pl-c1">AValueThatIsZero</span><span class="pl-c1"><span class="pl-c1">,</span></span>
+  <span class="pl-c1">ThisValueIsOne</span><span class="pl-c1"><span class="pl-c1">,</span></span>
+  <span class="pl-c1">ThisIsTwo</span><span class="pl-c1"><span class="pl-c1">,</span></span>
+  <span class="pl-c1">ButThisIsSeven</span> <span class="pl-k">=</span> <span class="pl-c1">7</span>
+  <span class="pl-c1">AndNowThisIsEight</span>
+<span class="pl-c1"><span class="pl-c1">}</span></span></pre></div>
+
+<h4>
+<a id="bitfields" class="anchor" href="#bitfields" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Bitfields</h4>
+
+<p>Bitfields are used to represent data that packs several values together.  They are defined with the <strong>bitfield</strong> keyword and, like enumerations, must declare a base type.  Additionally, each variable inside a bitfield must specify its size in bits:</p>
+
+<div class="highlight highlight-source-elm"><pre><span class="pl-en">bitfield </span><span class="pl-c1">MyBitfield</span> <span class="pl-k">:</span> <span class="pl-c1">Byte</span> <span class="pl-c1"><span class="pl-c1">{</span></span>
+  first_bit             <span class="pl-k">:</span> <span class="pl-c1">1</span>;
+  second_to_fourth_bits <span class="pl-k">:</span> <span class="pl-c1">3</span>;
+  remaining_bits        <span class="pl-k">:</span> <span class="pl-c1">4</span>;
+<span class="pl-c1"><span class="pl-c1">}</span></span></pre></div>
+
+<h3>
+<a id="conditionals-and-loops" class="anchor" href="#conditionals-and-loops" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Conditionals and Loops</h3>
+
+<p>BeeSchema has basic support for conditionals and loops, including <strong>if</strong>, <strong>unless</strong>, <strong>while</strong>, and <strong>until</strong>.  Conditions for these can consist of references to previously-defined variables, macros, and comparison operators (!, ==, !=, &lt;, &gt;, &lt;=, and &gt;=).  Conditions can be chained together using OR (||) or AND (&amp;&amp;):</p>
+
+<div class="highlight highlight-source-elm"><pre><span class="pl-k">if </span><span class="pl-k">(</span>some_value <span class="pl-k">&gt;</span> <span class="pl-c1">5</span> <span class="pl-k">&amp;&amp;</span> another_value <span class="pl-k">&lt;=</span> <span class="pl-c1">42</span><span class="pl-k">)</span> <span class="pl-c1"><span class="pl-c1">{</span></span>
+  an_int  <span class="pl-k">:</span> <span class="pl-c1">Int</span>;
+  a_short <span class="pl-k">:</span> <span class="pl-c1">Short</span>;
+<span class="pl-c1"><span class="pl-c1">}</span></span></pre></div>
+
+<p>The following table lists the currently supported conditionals and loops and a brief description of their purpose.</p>
+
+<table>
+<thead>
+<tr>
+<th>Keyword</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>if</td>
+<td>If the condition is met, any variables in the associated block will be evaluated</td>
+</tr>
+<tr>
+<td>unless</td>
+<td>Like <strong>if</strong>, but only evaluates the associated block if the condition is <strong>not</strong> met</td>
+</tr>
+<tr>
+<td>while</td>
+<td>Evaluates the variables in the associated block while the condition is true</td>
+</tr>
+<tr>
+<td>until</td>
+<td>Evaluates the variables in the associated block while the condition is false</td>
+</tr>
+</tbody>
+</table>
+
+<h3>
+<a id="macros" class="anchor" href="#macros" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Macros</h3>
+
+<p>BeeSchema supports a few macros that provide information about the current binary file being parsed.  They can be used as conditions and in array length specifiers.  Macros are prepended with the <strong>@</strong> character and evaluated by BeeSchema while binary data is being parsed.  The following table lists the currently supported macros and what they represent.</p>
+
+<table>
+<thead>
+<tr>
+<th>Macro</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="https://github.com/eof" class="user-mention">@eof</a></td>
+<td>Evaluates to <strong>true</strong> if the end of the binary data has been reached</td>
+</tr>
+<tr>
+<td><a href="https://github.com/size" class="user-mention">@size</a></td>
+<td>Evaluates to the size of the binary data</td>
+</tr>
+<tr>
+<td><a href="https://github.com/pos" class="user-mention">@pos</a></td>
+<td>Evaluates to the current position of the parser in the binary data</td>
+</tr>
+</tbody>
+</table>
+
+<h3>
+<a id="comments" class="anchor" href="#comments" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Comments</h3>
+
+<p>Schema files support both single-line and block (multi-line) comments.  When BeeSchema discovers a comment, it will attach it to the most recently-declared variable.  This is useful for including annotations that you would like to display in your program along with the data.</p>
+
+<h4>
+<a id="single-line-comments" class="anchor" href="#single-line-comments" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Single-Line Comments</h4>
+
+<p>Single-line comments are declared by the <strong>#</strong> character, followed by the comment itself:</p>
+
+<div class="highlight highlight-source-elm"><pre><span class="pl-en">a_string</span>  <span class="pl-k">:</span> <span class="pl-k">String</span>;   # <span class="pl-k">This</span> <span class="pl-smi">is</span> <span class="pl-smi">a</span> <span class="pl-smi">comment</span>!</pre></div>
+
+<h4>
+<a id="block-multi-line-comments" class="anchor" href="#block-multi-line-comments" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Block (Multi-Line) Comments</h4>
+
+<p>Multi-Line comments (otherwise known as "block comments") are declared by wrapping the comment text in double-hashes (ie. two <strong>#</strong> characters):</p>
+
+<pre><code>## This is
+a multiline
+comment.
+##
+</code></pre>
+
+<h3>
+<a id="including-schema-files" class="anchor" href="#including-schema-files" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Including Schema Files</h3>
+
+<p>BeeSchema allows you to include other schema files inside your schema file.  This will import all of the defined custom data types, but will ignore the <strong>schema</strong> block inside that file:</p>
+
+<div class="highlight highlight-source-elm"><pre><span class="pl-en">include </span>some_schema_file<span class="pl-k">.</span>bee;</pre></div>
+
+<p>This can be useful when several data formats share common types as it prevents you from having to repeat code and helps reduce the size of schema files.</p>
+
+<h3>
+<a id="example-schema-file" class="anchor" href="#example-schema-file" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Example Schema File</h3>
+
+<p>Here's an example schema file that demonstrates all of the current features of BeeSchema:</p>
+
+<div class="highlight highlight-source-elm"><pre># <span class="pl-c1">We</span> can include external files so that we can use types defined <span class="pl-k">in </span>them
+<span class="pl-en">include </span>somefile<span class="pl-k">.</span>bee;
+
+# <span class="pl-c1">This</span> is a single<span class="pl-k">-</span>line comment
+
+##
+    <span class="pl-c1">This</span> is a
+    multi<span class="pl-k">-</span>line
+    comment<span class="pl-k">.</span>
+##
+
+<span class="pl-en">struct </span><span class="pl-c1">SomeStruct</span> <span class="pl-c1"><span class="pl-c1">{</span></span>
+    a_bool      <span class="pl-k">:</span> bool;
+    a_byte      <span class="pl-k">:</span> byte;
+    an_sbyte    <span class="pl-k">:</span> sbyte;
+    a_ushort    <span class="pl-k">:</span> ushort;
+    a_short     <span class="pl-k">:</span> short;
+    an_int      <span class="pl-k">:</span> int;
+    a_uint      <span class="pl-k">:</span> uint;
+    a_long      <span class="pl-k">:</span> long;
+    a_ulong     <span class="pl-k">:</span> ulong
+    a_float     <span class="pl-k">:</span> float;
+    a_double    <span class="pl-k">:</span> double;
+    a_string    <span class="pl-k">:</span> string;
+    an_ip       <span class="pl-k">:</span> ipaddress;
+    a_timestamp <span class="pl-k">:</span> epoch
+<span class="pl-c1"><span class="pl-c1">}</span></span>
+
+# <span class="pl-c1">Enum</span> and bitfield definitions require a base <span class="pl-k">type</span>
+<span class="pl-en">enum </span><span class="pl-c1">SomeEnum</span> <span class="pl-k">:</span> byte <span class="pl-c1"><span class="pl-c1">{</span></span>
+    <span class="pl-c1">SomeValue1</span><span class="pl-c1"><span class="pl-c1">,</span></span>
+    <span class="pl-c1">SomeValue2</span><span class="pl-c1"><span class="pl-c1">,</span></span>
+    <span class="pl-c1">AnotherValue</span> <span class="pl-k">=</span> <span class="pl-c1">10</span><span class="pl-c1"><span class="pl-c1">,</span></span>
+    <span class="pl-c1">YetAnotherValue</span>
+<span class="pl-c1"><span class="pl-c1">}</span></span>
+
+<span class="pl-en">bitfield </span><span class="pl-c1">SomeBitfield</span> <span class="pl-k">:</span> byte <span class="pl-c1"><span class="pl-c1">{</span></span>
+    first_bit   <span class="pl-k">:</span> <span class="pl-c1">1</span>;
+    next_3_bits <span class="pl-k">:</span> <span class="pl-c1">3</span>;
+    last_4_bits <span class="pl-k">:</span> <span class="pl-c1">4</span>;
+<span class="pl-c1"><span class="pl-c1">}</span></span>
+
+<span class="pl-en">schema </span><span class="pl-c1"><span class="pl-c1">{</span></span>
+    a_struct    <span class="pl-k">:</span> <span class="pl-c1">SomeStruct</span>;   # <span class="pl-c1">Variables</span> can be annotated by using a comment
+    an_enum     <span class="pl-k">:</span> <span class="pl-c1">SomeEnum</span>;
+    a_bitfield  <span class="pl-k">:</span> <span class="pl-c1">SomeBitfield</span>;
+    length      <span class="pl-k">:</span> <span class="pl-c1">Int</span>;
+    an_array    <span class="pl-k">:</span> <span class="pl-c1">Char</span><span class="pl-c1"><span class="pl-c1">[</span></span>length<span class="pl-c1"><span class="pl-c1">]</span></span>;
+    an_array2   <span class="pl-k">:</span> <span class="pl-c1">Int</span><span class="pl-c1"><span class="pl-c1">[</span></span><span class="pl-c1">4</span> <span class="pl-k">*</span> <span class="pl-c1">2</span><span class="pl-c1"><span class="pl-c1">]</span></span>;
+    an_array3   <span class="pl-k">:</span> <span class="pl-c1">Byte</span><span class="pl-c1"><span class="pl-c1">[</span></span>@size <span class="pl-k">-</span> @pos <span class="pl-k">-</span> <span class="pl-c1">32</span><span class="pl-c1"><span class="pl-c1">]</span></span>;
+    int_1<span class="pl-c1"><span class="pl-c1">,</span></span>
+    int_2<span class="pl-c1"><span class="pl-c1">,</span></span>
+    int_3       <span class="pl-k">:</span> <span class="pl-c1">Int</span>;  # <span class="pl-c1">Multiple</span> variables <span class="pl-k">of </span>the same <span class="pl-k">type </span>can be declared by separating them with a comma
+
+    until<span class="pl-k">(</span>@eof<span class="pl-k">)</span> <span class="pl-c1"><span class="pl-c1">{</span></span>
+        some_var    <span class="pl-k">:</span> <span class="pl-c1">Float</span>;
+        another_var <span class="pl-k">:</span> <span class="pl-c1">Epoch</span>;
+    <span class="pl-c1"><span class="pl-c1">}</span></span>
+<span class="pl-c1"><span class="pl-c1">}</span></span></pre></div>
+
+<h2>
+<a id="using-beeschema" class="anchor" href="#using-beeschema" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Using BeeSchema</h2>
+
+<p>To use BeeSchema, create an instance of the <strong>Schema</strong> class using the static <strong>FromFile()</strong> or <strong>FromText()</strong> methods.  You can then parse a binary file by passing the filename, a byte array, or a Stream object to the instance's <strong>Parse()</strong> method.  Please see <a href="Example/Program.cs">the Example project</a> for a simple example on how to use BeeSchema and the resulting parsed data.</p>
+
+      <footer class="site-footer">
+        <span class="site-footer-owner"><a href="https://github.com/Epidal/BeeSchema">Beeschema</a> is maintained by <a href="https://github.com/Epidal">Epidal</a>.</span>
+
+        <span class="site-footer-credits">This page was generated by <a href="https://pages.github.com">GitHub Pages</a> using the <a href="https://github.com/jasonlong/cayman-theme">Cayman theme</a> by <a href="https://twitter.com/jasonlong">Jason Long</a>.</span>
+      </footer>
+
+    </section>
+
+  
+  </body>
+</html>
