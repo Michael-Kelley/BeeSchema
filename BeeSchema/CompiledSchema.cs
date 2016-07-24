@@ -14,38 +14,29 @@ namespace BeeSchema {
 		delegate Result Reader(BinaryReader reader);
 		delegate void Writer(BinaryWriter writer, Result result);
 
-		Dictionary<string, DynamicMethod> structReaders, enumReaders, bitfieldReaders;
-		Dictionary<string, DynamicMethod> structWriters;
+		readonly Dictionary<string, DynamicMethod>
+			customTypeReaders,
+			customTypeWriters;
+
 		readonly Reader schemaReader;
 		readonly Writer schemaWriter;
 
 		internal CompiledSchema(Schema schema) {
-			structReaders = new Dictionary<string, DynamicMethod>();
-			enumReaders = new Dictionary<string, DynamicMethod>();
-			bitfieldReaders = new Dictionary<string, DynamicMethod>();
-			structWriters = new Dictionary<string, DynamicMethod>();
+			customTypeReaders = new Dictionary<string, DynamicMethod>();
+			customTypeWriters = new Dictionary<string, DynamicMethod>();
 
 			foreach (var t in schema.Types.Values) {
-				if (t.Type == NodeType.EnumDef) {
-					var method = CreateEnumReader(t);
-					var del = method.CreateDelegate(typeof(Func<BinaryReader, object>));
-					var m = del.Method;
-					enumReaders[t.Name] = method;
-					continue;
-				}
-
-				if (t.Type == NodeType.BitfieldDef) {
-					var method = CreateBitfieldReader(t);
-					var del = method.CreateDelegate(typeof(Func<BinaryReader, ResultCollection>));
-					var m = del.Method;
-					bitfieldReaders[t.Name] = method;
-					continue;
-				}
-
 				DynamicMethod r, w;
-				CreateReaderWriter(t, out r, out w);
-				structReaders[t.Name] = r;
-				structWriters[t.Name] = w;
+
+				if (t.Type == NodeType.EnumDef)
+					CreateEnumReaderWriter(t, out r, out w);
+				else if (t.Type == NodeType.BitfieldDef)
+					CreateBitfieldReaderWriter(t, out r, out w);
+				else
+					CreateReaderWriter(t, out r, out w);
+
+				customTypeReaders[t.Name] = r;
+				customTypeWriters[t.Name] = w;
 			}
 
 			DynamicMethod reader, writer;
@@ -54,55 +45,70 @@ namespace BeeSchema {
 			//schemaWriter = (Writer)writer.CreateDelegate(typeof(Writer));
 		}
 
-		DynamicMethod CreateEnumReader(Node node) {
-			var r = CreateActionDM<object, BinaryReader>($"Read{node.Name}");
-			var _ = r.GetILGenerator();
+		void CreateEnumReaderWriter(Node node, out DynamicMethod reader, out DynamicMethod writer) {
+			reader = CreateActionDM<object, BinaryReader>($"Read{node.Name}");
+			writer = CreateFuncDM<BinaryWriter, Result>($"Write{node.Name}");
+			var _ = reader.GetILGenerator();
+			var __ = writer.GetILGenerator();
 
 			var type = node.Children[0].Type;
 			var value = _.Local<long>();
 
+			_.LdArg0();
+
+			__.LdArg0();
+			__.LdArg1();
+			__.LdFld<Result>("Value");
+			__.CastClass<Tuple<string, long>>();
+			__.CallVirt<Tuple<string, long>>("get_Item2");
+
 			switch (type) {
 				case NodeType.SByte:
-					_.LdArg0();
 					_.CallVirt<BinaryReader>("ReadSByte");
-					_.ConvI8();
+
+					__.ConvI1();
+					__.CallVirt<BinaryWriter, sbyte>("Write");
 					break;
 				case NodeType.Byte:
-					_.LdArg0();
 					_.CallVirt<BinaryReader>("ReadByte");
-					_.ConvI8();
+
+					__.ConvU1();
+					__.CallVirt<BinaryWriter, byte>("Write");
 					break;
 				case NodeType.Short:
-					_.LdArg0();
 					_.CallVirt<BinaryReader>("ReadInt16");
-					_.ConvI8();
+
+					__.ConvI2();
+					__.CallVirt<BinaryWriter, short>("Write");
 					break;
 				case NodeType.UShort:
-					_.LdArg0();
 					_.CallVirt<BinaryReader>("ReadUInt16");
-					_.ConvI8();
+
+					__.CallVirt<BinaryWriter, ushort>("Write");
 					break;
 				case NodeType.Int:
-					_.LdArg0();
 					_.CallVirt<BinaryReader>("ReadInt32");
-					_.ConvI8();
+
+					__.CallVirt<BinaryWriter, int>("Write");
 					break;
 				case NodeType.UInt:
-					_.LdArg0();
 					_.CallVirt<BinaryReader>("ReadUInt32");
-					_.ConvI8();
+
+					__.CallVirt<BinaryWriter, uint>("Write");
 					break;
 				case NodeType.Long:
-					_.LdArg0();
 					_.CallVirt<BinaryReader>("ReadInt64");
+
+					__.CallVirt<BinaryWriter, long>("Write");
 					break;
 				case NodeType.ULong:
-					_.LdArg0();
 					_.CallVirt<BinaryReader>("ReadUInt64");
-					_.ConvI8();
+
+					__.CallVirt<BinaryWriter, ulong>("Write");
 					break;
 			}
 
+			_.ConvI8();
 			_.StLoc(value);
 			var end = _.Label();
 
@@ -129,13 +135,16 @@ namespace BeeSchema {
 
 			_.Ret();
 
-			return r;
+			__.Ret();
 		}
 
-		DynamicMethod CreateBitfieldReader(Node node) {
-			var r = CreateActionDM<ResultCollection, BinaryReader>($"Read{node.Name}");
-			var _ = r.GetILGenerator();
+		void CreateBitfieldReaderWriter(Node node, out DynamicMethod reader, out DynamicMethod writer) {
+			reader = CreateActionDM<ResultCollection, BinaryReader>($"Read{node.Name}");
+			writer = CreateFuncDM<BinaryWriter, Result>($"Write{node.Name}");
+			var _ = reader.GetILGenerator();
+			var __ = writer.GetILGenerator();
 
+			// ## READ ##
 			var type = node.Children[0].Type;
 			var value = _.Local<long>();
 
@@ -193,7 +202,13 @@ namespace BeeSchema {
 			_.CallVirt<Stream>("get_Position");
 			_.StLoc(pos);
 
+
+			// ## WRITE ##
+			__.LdArg0();
+			var shift = 0;
+
 			foreach (var c in node.Children) {
+				// ## READ ##
 				var re = _.Local<Result>();
 				_.NewObj<Result>();
 				_.StLoc(re);
@@ -237,17 +252,70 @@ namespace BeeSchema {
 				_.LdLoc(col);
 				_.LdLoc(re);
 				_.CallVirt<ResultCollection>("Add");
+
+
+				// ## WRITE ##
+				__.LdArg1();
+				__.LdStr(c.Name);
+				__.CallVirt<Result, string>("get_Item");
+				__.LdFld<Result>("Value");
+				__.UnboxAny<long>();
+
+				if (shift != 0) {
+					__.LdCI4(shift);
+					__.ShL();
+					__.Add();
+				}
+
+				shift += (int)(long)c.Value;
 			}
 
+			// ## WRITE ##
+			switch (type) {
+				case NodeType.SByte:
+					__.ConvI1();
+					__.CallVirt<BinaryWriter, sbyte>("Write");
+					break;
+				case NodeType.Byte:
+					__.ConvU1();
+					__.CallVirt<BinaryWriter, byte>("Write");
+					break;
+				case NodeType.Short:
+					__.ConvI2();
+					__.CallVirt<BinaryWriter, short>("Write");
+					break;
+				case NodeType.UShort:
+					__.ConvU2();
+					__.CallVirt<BinaryWriter, ushort>("Write");
+					break;
+				case NodeType.Int:
+					__.ConvI4();
+					__.CallVirt<BinaryWriter, int>("Write");
+					break;
+				case NodeType.UInt:
+					__.ConvU4();
+					__.CallVirt<BinaryWriter, uint>("Write");
+					break;
+				case NodeType.Long:
+					__.CallVirt<BinaryWriter, long>("Write");
+					break;
+				case NodeType.ULong:
+					__.ConvU8();
+					__.CallVirt<BinaryWriter, ulong>("Write");
+					break;
+			}
+
+			__.Ret();
+
+
+			// ## READ ##
 			_.LdLoc(col);
 			_.Ret();
-
-			return r;
 		}
 
 		void CreateReaderWriter(Node node, out DynamicMethod reader, out DynamicMethod writer) {
 			reader = CreateActionDM<Result, BinaryReader>($"Read{node.Name}");
-			writer = CreateFuncDM<BinaryReader, Result>($"Write{node.Name}");
+			writer = CreateFuncDM<BinaryWriter, Result>($"Write{node.Name}");
 			var ril = reader.GetILGenerator();
 			var wil = writer.GetILGenerator();
 
@@ -564,18 +632,18 @@ namespace BeeSchema {
 				case NodeType.Struct:
 					_.LdLoc(r);
 					_.LdArg0();
-					_.Call(structReaders[(string)node.Value]);
+					_.Call(customTypeReaders[(string)node.Value]);
 					_.LdFld<Result>("Value");
 					break;
 				case NodeType.Bitfield:
 					_.LdLoc(r);
 					_.LdArg0();
-					_.Call(bitfieldReaders[(string)node.Value]);
+					_.Call(customTypeReaders[(string)node.Value]);
 					break;
 				case NodeType.Enum:
 					_.LdLoc(r);
 					_.LdArg0();
-					_.Call(enumReaders[(string)node.Value]);
+					_.Call(customTypeReaders[(string)node.Value]);
 					break;
 				case NodeType.Array:
 					var tnode = node.Children[0];

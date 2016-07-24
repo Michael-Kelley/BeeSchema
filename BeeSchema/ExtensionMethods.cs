@@ -11,6 +11,10 @@ namespace BeeSchema {
 		public static void Add(this ILGenerator il)
 			=> il.Emit(OpCodes.Add);
 
+		/// <summary>
+		/// Pop two values from the stack, perform a bitwise AND on them and push the value on to the stack.
+		/// </summary>
+		/// <param name="il">this</param>
 		public static void And(this ILGenerator il)
 			=> il.Emit(OpCodes.And);
 
@@ -101,8 +105,24 @@ namespace BeeSchema {
 		/// <param name="meth">The name of the method to call.</param>
 		public static void Call<T>(this ILGenerator il, string meth)
 			=> il.Emit(OpCodes.Call, typeof(T).GetMethod(meth));
+		/// <summary>
+		/// Call the method that matches the provided name and argument types using arguments on the stack.
+		/// </summary>
+		/// <typeparam name="T">The type containing the method.</typeparam>
+		/// <typeparam name="T1">The type of the method's first argument.</typeparam>
+		/// <param name="il">this</param>
+		/// <param name="meth">The name of the method to call.</param>
 		public static void Call<T, T1>(this ILGenerator il, string meth)
 			=> il.Emit(OpCodes.Call, typeof(T).GetMethod(meth, new[] { typeof(T1) }));
+		/// <summary>
+		/// Call the method that matches the provided name and argument types using arguments on the stack.
+		/// </summary>
+		/// <typeparam name="T">The type containing the method.</typeparam>
+		/// <typeparam name="T1">The type of the method's first argument.</typeparam>
+		/// <typeparam name="T2">The type of the method's second argument.</typeparam>
+		/// <typeparam name="T3">The type of the method's third argument.</typeparam>
+		/// <param name="il">this</param>
+		/// <param name="meth">The name of the method to call.</param>
 		public static void Call<T, T1, T2, T3>(this ILGenerator il, string meth)
 			=> il.Emit(OpCodes.Call, typeof(T).GetMethod(meth, new[] { typeof(T1), typeof(T2), typeof(T3) }));
 
@@ -111,14 +131,28 @@ namespace BeeSchema {
 		public static void CallVirt<T, T1>(this ILGenerator il, string meth)
 			=> il.Emit(OpCodes.Callvirt, typeof(T).GetMethod(meth, new[] { typeof(T1) }));
 
+		public static void CastClass<T>(this ILGenerator il)
+			=> il.Emit(OpCodes.Castclass, typeof(T));
+
 		public static void CEq(this ILGenerator il)
 			=> il.Emit(OpCodes.Ceq);
 
+		public static void ConvI1(this ILGenerator il)
+			=> il.Emit(OpCodes.Conv_I1);
+		public static void ConvI2(this ILGenerator il)
+			=> il.Emit(OpCodes.Conv_I2);
 		public static void ConvI4(this ILGenerator il)
 			=> il.Emit(OpCodes.Conv_I4);
-
 		public static void ConvI8(this ILGenerator il)
 			=> il.Emit(OpCodes.Conv_I8);
+		public static void ConvU1(this ILGenerator il)
+			=> il.Emit(OpCodes.Conv_U1);
+		public static void ConvU2(this ILGenerator il)
+			=> il.Emit(OpCodes.Conv_U2);
+		public static void ConvU4(this ILGenerator il)
+			=> il.Emit(OpCodes.Conv_U4);
+		public static void ConvU8(this ILGenerator il)
+			=> il.Emit(OpCodes.Conv_U8);
 
 		public static void Div(this ILGenerator il)
 			=> il.Emit(OpCodes.Div);
@@ -131,13 +165,15 @@ namespace BeeSchema {
 
 		public static void LdArg0(this ILGenerator il)
 			=> il.Emit(OpCodes.Ldarg_0);
+		public static void LdArg1(this ILGenerator il)
+			=> il.Emit(OpCodes.Ldarg_1);
 
 		public static void LdCI4(this ILGenerator il, int i4)
 			=> il.Emit(OpCodes.Ldc_I4, i4);
-
+		public static void LdCI4_0(this ILGenerator il)
+			=> il.Emit(OpCodes.Ldc_I4_0);
 		public static void LdCI4_1(this ILGenerator il)
 			=> il.Emit(OpCodes.Ldc_I4_1);
-
 		public static void LdCI4_4(this ILGenerator il)
 			=> il.Emit(OpCodes.Ldc_I4_4);
 
@@ -165,6 +201,8 @@ namespace BeeSchema {
 		public static void Mul(this ILGenerator il)
 			=> il.Emit(OpCodes.Mul);
 
+		public static void NewObj(this ILGenerator il, Type t)
+			=> il.Emit(OpCodes.Newobj, t.GetConstructor(Type.EmptyTypes));
 		public static void NewObj<T>(this ILGenerator il)
 			=> il.Emit(OpCodes.Newobj, typeof(T).GetConstructor(Type.EmptyTypes));
 		public static void NewObj<T, T1>(this ILGenerator il)
@@ -177,9 +215,14 @@ namespace BeeSchema {
 		public static void Ret(this ILGenerator il)
 			=> il.Emit(OpCodes.Ret);
 
+		public static void ShL(this ILGenerator il)
+			=> il.Emit(OpCodes.Shl);
+
 		public static void ShR(this ILGenerator il)
 			=> il.Emit(OpCodes.Shr);
 
+		public static void StFld(this ILGenerator il, FieldInfo fld)
+			=> il.Emit(OpCodes.Stfld, fld);
 		public static void StFld<T>(this ILGenerator il, string fld)
 			=> il.Emit(OpCodes.Stfld, typeof(T).GetField(fld));
 
