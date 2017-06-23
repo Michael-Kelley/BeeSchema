@@ -381,7 +381,7 @@ namespace BeeSchema {
 					}
 				case NodeType.Guid:
 					size = 16;
-					return new Guid(reader.ReadBytes(4));
+					return new Guid(reader.ReadBytes(16));
 				case NodeType.IPAddress:
 					size = 4;
 					return new IPAddress(reader.ReadBytes(4));
