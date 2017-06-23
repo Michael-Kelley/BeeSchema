@@ -13,7 +13,7 @@ namespace BeeSchema {
 
 		Char, String,
 
-		IPAddress, Epoch,
+		IPAddress, Epoch,Guid,
 
 		Array,
 		Pointer,
@@ -55,6 +55,8 @@ namespace BeeSchema {
 		EofMacro,
 		SizeMacro,
 		PosMacro,
+
+		
 
 		Error = -1
 	}

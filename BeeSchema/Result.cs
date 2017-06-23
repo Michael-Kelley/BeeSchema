@@ -37,6 +37,7 @@ namespace BeeSchema {
 		public static implicit operator double(Result r) => (double)r.Value;
 		public static implicit operator char(Result r) => (char)r.Value;
 		public static implicit operator string(Result r) => (string)r.Value;
+	    public static implicit operator Guid(Result r) => (Guid)r.Value;
 		public static implicit operator IPAddress(Result r) => (IPAddress)r.Value;
 		public static implicit operator DateTime(Result r) => (DateTime)r.Value;
 
@@ -53,6 +54,7 @@ namespace BeeSchema {
 		public static implicit operator double[] (Result r) => r.Select(a => (double)a).ToArray();
 		public static implicit operator char[] (Result r) => r.Select(a => (char)a).ToArray();
 		public static implicit operator string[] (Result r) => r.Select(a => (string)a).ToArray();
+	    public static implicit operator Guid[] (Result r) => r.Select(a => (Guid)a).ToArray();
 		public static implicit operator IPAddress[] (Result r) => r.Select(a => (IPAddress)a).ToArray();
 		public static implicit operator DateTime[] (Result r) => r.Select(a => (DateTime)a).ToArray();
 	}
