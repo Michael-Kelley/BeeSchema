@@ -37,6 +37,7 @@ ulong | 8 | An unsigned 64-bit integer
 long | 8 | A signed 64-bit integer
 float | 4 | A 32-bit floating point integer
 double | 8 | A 64-bit floating point integer
+guid | 16 | An Unique Identifier
 ipaddress | 4 | A 32-bit representation of an IP address, where each byte represents a portion of the address (eg. 0x04030201 = 1.2.3.4)
 epoch | 4 | A 32-bit value representing a date and time in Unix format (seconds since 01/01/1970)
 

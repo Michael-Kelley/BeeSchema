@@ -8,6 +8,7 @@ enum SomeEnum : byte {
 
 struct SomeStruct {
 	bytes	: byte[4];
+	id : guid;
 }
 
 schema {
